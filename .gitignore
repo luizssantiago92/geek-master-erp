@@ -1,0 +1,82 @@
+# Node / Next.js
+node_modules/
+.next/
+out/
+build/
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.idea/
+.vscode/
+
+# Ambiente Virtual Python
+venv/
+.env_python/
+ENV/
+env.bak/
+venv.bak/
+
+# Chaves de API e Variáveis de Ambiente (CRÍTICO)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# Supabase Local
+supabase/.temp/
+supabase/.branch/
+
+# SQLite (se aplicável localmente)
+*.sqlite3
+
+# Arquivos de log e testes
+test_gemini.py
+test_models.py
+
+# Outros
+.agents/

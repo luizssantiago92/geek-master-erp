@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme {
+  --color-piticas-orange: #FF5A00;
+  --color-piticas-dark: #0F0F0F;
+  --color-piticas-gray: #1A1A1A;
+  --color-piticas-light: #F5F5F5;
+}
+
+@layer base {
+  :root {
+    --background: var(--color-piticas-dark);
+    --foreground: var(--color-piticas-light);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: Arial, Helvetica, sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-piticas-orange hover:bg-orange-600 text-white font-bold py-2 px-4 rounded transition-all duration-300 shadow-[0_0_15px_rgba(255,90,0,0.5)] hover:shadow-[0_0_25px_rgba(255,90,0,0.8)];
+  }
+  
+  .glass-panel {
+    @apply bg-piticas-gray/80 backdrop-blur-md border border-white/10 rounded-xl shadow-xl;
+  }
+}
