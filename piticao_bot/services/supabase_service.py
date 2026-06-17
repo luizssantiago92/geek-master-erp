@@ -251,6 +251,29 @@ def atualizar_persona(funcionario_id: str, nova_persona: str) -> bool:
         print(f"Erro ao atualizar persona: {e}")
         return False
 
+def incrementar_uso_persona(persona_nome: str):
+    """Incrementa o contador de vezes que uma persona foi selecionada no ranking."""
+    try:
+        # Busca o valor atual
+        response = supabase.table("persona_ranking").select("vezes_selecionada").eq("persona_nome", persona_nome).execute()
+        if response.data:
+            atual = response.data[0]["vezes_selecionada"]
+            supabase.table("persona_ranking").update({"vezes_selecionada": atual + 1, "ultima_selecao": "now()"}).eq("persona_nome", persona_nome).execute()
+        else:
+            # Se não existir, cria com 1
+            supabase.table("persona_ranking").insert({"persona_nome": persona_nome, "vezes_selecionada": 1}).execute()
+    except Exception as e:
+        print(f"Erro ao incrementar ranking da persona: {e}")
+
+def get_ranking_personas():
+    """Retorna o ranking de personas mais utilizadas."""
+    try:
+        response = supabase.table("persona_ranking").select("*").order("vezes_selecionada", desc=True).execute()
+        return response.data
+    except Exception as e:
+        print(f"Erro ao buscar ranking de personas: {e}")
+        return []
+
 # ==============================================================================
 # FASE 5: CATÁLOGO E ESTOQUE
 # ==============================================================================

@@ -50,7 +50,7 @@ def get_menu_por_nivel(nivel: int) -> ReplyKeyboardMarkup:
             ["🎟️ Gerar Código", "👥 Listar Usuários"],
             ["📢 Transmissão Global", "⏸️ Suspender/Ativar"],
             ["🚫 Revogar Acesso", "📊 Resumo do Sistema"],
-            ["🎭 Escolher Persona"]
+            ["🎭 Escolher Persona", "📊 Ranking Personas"]
         ]
     else:
         keyboard = [["/start"]]
@@ -59,10 +59,10 @@ def get_menu_por_nivel(nivel: int) -> ReplyKeyboardMarkup:
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Processa mensagens de texto."""
-    if not update.message or not update.message.text:
+    if not update.message:
         return
 
-    text = update.message.text
+    text = update.message.text or ""
     telegram_id = str(update.message.from_user.id)
     
     # 1. Removido o bloqueio de comandos puros para que /start e /menu funcionem.
@@ -228,6 +228,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
         return
         
+    # Tratamento de Figurinhas (Repreensão de Vendedores)
+    if update.message.sticker:
+        await update.message.reply_text("⛔ *Ação não permitida!*\nBrincadeiras e figurinhas não são adequadas para este canal corporativo. Por favor, mantenha o foco no trabalho e utilize os botões do menu abaixo.", parse_mode="Markdown")
+        return
+        
     # ==============================================================
     # LÓGICA DOS BOTÕES DOS MENUS INTERATIVOS
     # ==============================================================
@@ -267,15 +272,36 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- Menu Compartilhado: Escolher Persona ---
     if text == "🎭 Escolher Persona":
         keyboard = [
-            [InlineKeyboardButton("🕷️ Homem-Aranha", callback_data="persona_set_Homem-Aranha")],
-            [InlineKeyboardButton("🤖 C3PO", callback_data="persona_set_C3PO")],
-            [InlineKeyboardButton("💥 Vegeta", callback_data="persona_set_Vegeta")],
-            [InlineKeyboardButton("🦇 Alfred", callback_data="persona_set_Alfred")],
-            [InlineKeyboardButton("🧠 Padrão", callback_data="persona_set_Padrão")]
+            [InlineKeyboardButton("🕸️ H-Aranha", callback_data="persona_set_Homem-Aranha"), InlineKeyboardButton("⚔️ Deadpool", callback_data="persona_set_Deadpool")],
+            [InlineKeyboardButton("🦇 Batman", callback_data="persona_set_Batman"), InlineKeyboardButton("🎩 Alfred", callback_data="persona_set_Alfred")],
+            [InlineKeyboardButton("🤖 C-3PO", callback_data="persona_set_C3PO"), InlineKeyboardButton("🌑 Darth Vader", callback_data="persona_set_Darth Vader")],
+            [InlineKeyboardButton("💥 Vegeta", callback_data="persona_set_Vegeta"), InlineKeyboardButton("🍜 Naruto", callback_data="persona_set_Naruto")],
+            [InlineKeyboardButton("🪄 Hermione", callback_data="persona_set_Hermione"), InlineKeyboardButton("🐶 Piticão", callback_data="persona_set_Piticão")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         persona_atual = funcionario.get('persona', 'Padrão')
-        await update.message.reply_text(f"Sua persona atual é: *{persona_atual}*\n\nEscolha o comportamento do Piticão:", parse_mode="Markdown", reply_markup=reply_markup)
+        await update.message.reply_text(f"Atualmente você está usando a persona: *{persona_atual}*\n\nEscolha uma nova persona para me controlar:", reply_markup=reply_markup, parse_mode="Markdown")
+        return
+
+    # --- Menu Exclusivo ADM: Ranking de Personas ---
+    if text == "📊 Ranking Personas":
+        if funcionario['nivel_acesso'] < 4:
+            await update.message.reply_text("⛔ Acesso Negado.")
+            return
+            
+        from services.supabase_service import get_ranking_personas
+        ranking = get_ranking_personas()
+        
+        if not ranking:
+            await update.message.reply_text("📉 Ainda não há dados de ranking das personas.")
+            return
+            
+        texto_ranking = "🏆 *Ranking de Uso das Personas* 🏆\n\n"
+        for i, p in enumerate(ranking, 1):
+            texto_ranking += f"{i}º - *{p['persona_nome']}* ({p['vezes_selecionada']} escolhas)\n"
+            
+        texto_ranking += "\n_Este ranking ajuda a identificar quais personas remover no futuro._"
+        await update.message.reply_text(texto_ranking, parse_mode="Markdown")
         return
 
     # --- Menu Nível 2 (Marketing) ---
@@ -480,26 +506,32 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data.startswith("persona_set_"):
         nova_persona = data.replace("persona_set_", "")
-        from services.supabase_service import atualizar_persona
+        from services.supabase_service import atualizar_persona, incrementar_uso_persona
         
         atualizado = atualizar_persona(funcionario['id'], nova_persona)
         
         if atualizado:
-            # Enviar GIF temático e mensagem
-            gifs = {
-                "Homem-Aranha": "https://media.giphy.com/media/xTiTnHvXCWxVtxhRoA/giphy.gif",
-                "C3PO": "https://media.giphy.com/media/l2JJEIMLgrXPEe5vO/giphy.gif",
-                "Vegeta": "https://media.giphy.com/media/84CRvhy2wRkNa/giphy.gif",
-                "Alfred": "https://media.giphy.com/media/3o7WTqE8xW7kHInB9m/giphy.gif",
-                "Padrão": "https://media.giphy.com/media/3o7aD2saalEvpjj6A8/giphy.gif"
+            # Incrementa o banco de dados do ranking
+            incrementar_uso_persona(nova_persona)
+            apresentacoes = {
+                "Homem-Aranha": "🕸️🕷️ **Homem-Aranha assumindo o controle!** Com grandes poderes vêm grandes responsabilidades corporativas. O que vamos acessar no menu do sistema hoje, parceiro?",
+                "Deadpool": "⚔️🌮 **Deadpool na área!** Sério que me colocaram num chat corporativo? Tá bom, vamos fingir que eu trabalho aqui. Qual botão do menu a gente vai apertar hoje?",
+                "Batman": "🦇🌑 **...** Eu sou a noite. O sistema está seguro e eu estou monitorando tudo. O que você quer investigar no menu?",
+                "Alfred": "🎩☕ **Aos seus serviços.** O sistema corporativo está polido e pronto para uso. O que deseja visualizar no menu neste momento?",
+                "C3PO": "🤖✨ **Saudações, eu sou C-3PO!** Especialista em relações cibernético-humanas e... sistemas de estoque! Em qual menu corporativo posso auxiliá-lo de forma eficiente hoje?",
+                "Darth Vader": "🌑⚔️ **O Lado Sombrio está no controle.** Não me decepcione com erros. Escolha a funcionalidade do menu imediatamente.",
+                "Vegeta": "💥😠 **Príncipe Vegeta chegou!** Não me faça perder tempo com tolices. O trabalho é a prioridade! Qual funcionalidade do menu você precisa usar agora?",
+                "Naruto": "🍜🦊 **Tô certo! Naruto Uzumaki chegou!** Eu nunca desisto de um chamado no sistema! O que nós vamos acessar no menu hoje?",
+                "Hermione": "🪄📚 **Olá, preste atenção!** É Leviosa, não Leviosá. Mantenha o sistema organizado. O que você precisa acessar no nosso menu principal hoje?",
+                "Padrão": "🐶👕 **Piticão na área!** Au au! Estou pronto para ajudar a Master Geek. Qual botão do menu vamos acessar hoje?"
             }
-            url = gifs.get(nova_persona, gifs["Padrão"])
+            mensagem_persona = apresentacoes.get(nova_persona, "🐶👕 **Piticão na área!** Au au! Estou pronto para ajudar a Master Geek. Qual botão do menu vamos acessar hoje?")
             
             await query.edit_message_text(f"✅ Persona alterada para: *{nova_persona}*", parse_mode="Markdown")
             try:
-                await context.bot.send_animation(chat_id=telegram_id, animation=url, caption=f"Identidade {nova_persona} assumida com sucesso!")
-            except:
-                pass
+                await context.bot.send_message(chat_id=telegram_id, text=mensagem_persona, parse_mode="Markdown")
+            except Exception as e:
+                print("Erro ao enviar mensagem de persona:", e)
         else:
             await query.edit_message_text("❌ Falha ao atualizar a persona.")
 

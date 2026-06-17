@@ -25,8 +25,8 @@ def main():
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
     # Filtros específicos
-    application.add_handler(MessageHandler(filters.TEXT, handle_message))
-    application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    application.add_handler(MessageHandler(filters.TEXT | filters.Sticker.ALL, handle_message))
+    application.add_handler(MessageHandler(filters.PHOTO, handle_message))
     
     # Adicionar o handler para os botões do submenu (Inline Keyboards)
     application.add_handler(CallbackQueryHandler(handle_callback))
