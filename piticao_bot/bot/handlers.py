@@ -411,16 +411,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- Menu Nível 1 (Quiosque) ---
     if text == "📦 Estoque":
         user_states[telegram_id] = "esperando_foto_entrada"
-        await update.message.reply_text("📦 **ESTOQUE (Entrada/Cadastro)**
-
-Envie a foto do produto + código de barras. Se o produto for novo, ele será cadastrado automaticamente. Se já existir, apenas daremos entrada (+1).", parse_mode="Markdown")
+        await update.message.reply_text("📦 **ESTOQUE (Entrada/Cadastro)**\n\nEnvie a foto do produto + código de barras. Se o produto for novo, ele será cadastrado automaticamente. Se já existir, apenas daremos entrada (+1).", parse_mode="Markdown")
         return
         
     elif text == "🛒 Venda":
         user_states[telegram_id] = "esperando_foto_venda"
-        await update.message.reply_text("🛒 **REGISTRAR VENDA (-1)**
-
-Envie a **foto do código de barras** (ou do produto) que acabou de ser vendido.", parse_mode="Markdown")
+        await update.message.reply_text("🛒 **REGISTRAR VENDA (-1)**\n\nEnvie a **foto do código de barras** (ou do produto) que acabou de ser vendido.", parse_mode="Markdown")
         return
         
     elif text == "📋 Reposição":
@@ -431,17 +427,12 @@ Envie a **foto do código de barras** (ou do produto) que acabou de ser vendido.
             await update.message.reply_text("✅ O seu quiosque não tem nenhum item esgotado no momento!")
             return
             
-        texto = "🚨 **LISTA DE REPOSIÇÃO** 🚨
-
-Os seguintes itens estão esgotados no seu quiosque:
-
-"
+        texto = "🚨 **LISTA DE REPOSIÇÃO** 🚨\n\nOs seguintes itens estão esgotados no seu quiosque:\n\n"
         for item in resp.data:
             prod = item.get("produtos", {})
             nome = prod.get("nome", "Produto Desconhecido")
             ean = prod.get("ean", "Sem código")
-            texto += f"• {nome} (EAN: {ean})
-"
+            texto += f"• {nome} (EAN: {ean})\n"
             
         import urllib.parse
         msg_zap = urllib.parse.quote(texto.replace("**", "*"))
@@ -455,12 +446,9 @@ Os seguintes itens estão esgotados no seu quiosque:
         from services.supabase_service import buscar_encomendas_pendentes
         encomendas = buscar_encomendas_pendentes(funcionario['id'])
         if not encomendas:
-            await update.message.reply_text("✅ *Tudo limpo!*
-Você não tem nenhuma encomenda aguardando ação neste momento.", parse_mode="Markdown")
+            await update.message.reply_text("✅ *Tudo limpo!*\nVocê não tem nenhuma encomenda aguardando ação neste momento.", parse_mode="Markdown")
             return
-        texto = f"📦 Você tem **{len(encomendas)}** encomendas aguardando ação:
-
-Selecione um pedido abaixo para gerenciar:"
+        texto = f"📦 Você tem **{len(encomendas)}** encomendas aguardando ação:\n\nSelecione um pedido abaixo para gerenciar:"
         keyboard = []
         for enc in encomendas:
             status_emoji = "⏳" if enc['status'] == "PENDENTE" else "🛍️"
