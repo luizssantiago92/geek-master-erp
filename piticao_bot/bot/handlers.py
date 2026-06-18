@@ -11,9 +11,34 @@ from services.supabase_service import (
 )
 from services.gemini_service import analisar_imagem_gemini
 import tempfile
+from datetime import datetime
 
 user_states = {}  # Dicionário simples para guardar estado das conversas do ADM
+last_interaction = {} # Dicionário para guardar a última interação de cada usuário (Session Timeout)
+impersonation_states = {} # Dicionário para Administradores testarem outros perfis: telegram_id -> nivel_efetivo
+saved_test_profiles = {} # telegram_id -> set of levels
 
+def obter_saudacao():
+    hora = datetime.now().hour
+    if 5 <= hora < 12:
+        return "Bom dia"
+    elif 12 <= hora < 18:
+        return "Boa tarde"
+    else:
+        return "Boa noite"
+
+APRESENTACOES = {
+    "Homem-Aranha": "🕸️🕷️ **Homem-Aranha assumindo o controle!** Com grandes poderes vêm grandes responsabilidades corporativas. O que vamos acessar no menu do sistema hoje, parceiro?",
+    "Deadpool": "⚔️🌮 **Deadpool na área!** Sério que me colocaram num chat corporativo? Tá bom, vamos fingir que eu trabalho aqui. Qual botão do menu a gente vai apertar hoje?",
+    "Batman": "🦇🌑 **...** Eu sou a noite. O sistema está seguro e eu estou monitorando tudo. O que você quer investigar no menu?",
+    "Alfred": "🎩☕ **Aos seus serviços.** O sistema corporativo está polido e pronto para uso. O que deseja visualizar no menu neste momento?",
+    "C3PO": "🤖✨ **Saudações, eu sou C-3PO!** Especialista em relações cibernético-humanas e... sistemas de estoque! Em qual menu corporativo posso auxiliá-lo de forma eficiente hoje?",
+    "Darth Vader": "🌑⚔️ **O Lado Sombrio está no controle.** Não me decepcione com erros. Escolha a funcionalidade do menu imediatamente.",
+    "Vegeta": "💥😠 **Príncipe Vegeta chegou!** Não me faça perder tempo com tolices. O trabalho é a prioridade! Qual funcionalidade do menu você precisa usar agora?",
+    "Naruto": "🍜🦊 **Tô certo! Naruto Uzumaki chegou!** Eu nunca desisto de um chamado no sistema! O que nós vamos acessar no menu hoje?",
+    "Hermione": "🪄📚 **Olá, preste atenção!** É Leviosa, não Leviosá. Mantenha o sistema organizado. O que você precisa acessar no nosso menu principal hoje?",
+    "Padrão": "🐶👕 **Piticão na área!** Au au! Estou pronto para ajudar a Master Geek. Qual botão do menu vamos acessar hoje?"
+}
 
 load_dotenv()
 MASTER_ADMIN_CODE = os.getenv("MASTER_ADMIN_CODE")
@@ -26,12 +51,12 @@ NIVEIS = {
     4: "Administrador"
 }
 
-def get_menu_por_nivel(nivel: int) -> ReplyKeyboardMarkup:
+def get_menu_por_nivel(nivel: int, is_testing: bool = False) -> ReplyKeyboardMarkup:
     """Retorna o teclado interativo (ReplyKeyboardMarkup) apropriado para o nível de acesso."""
     if nivel == 1:
         keyboard = [
-            ["📦 Baixa em Encomenda", "🏷️ Cadastrar Produto"],
-            ["🔍 Consultar Estoque"],
+            ["📦 Estoque", "🛒 Venda"],
+            ["📋 Reposição", "📦 Encomendas"],
             ["🎭 Escolher Persona"]
         ]
     elif nivel == 2:
@@ -50,10 +75,14 @@ def get_menu_por_nivel(nivel: int) -> ReplyKeyboardMarkup:
             ["🎟️ Gerar Código", "👥 Listar Usuários"],
             ["📢 Transmissão Global", "⏸️ Suspender/Ativar"],
             ["🚫 Revogar Acesso", "📊 Resumo do Sistema"],
-            ["🎭 Escolher Persona", "📊 Ranking Personas"]
+            ["🎭 Escolher Persona", "📊 Ranking Personas"],
+            ["🧪 Modo Testador"]
         ]
     else:
         keyboard = [["/start"]]
+        
+    if is_testing:
+        keyboard.append(["🔙 Sair do Teste"])
         
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
 
@@ -70,11 +99,62 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     funcionario = get_funcionario_by_telegram_id(telegram_id)
     
     # STEALTH MODE: Zero-Trust Absoluto
-    # Se não existe no banco, ignora completamente a mensagem sem avisar nada.
     if not funcionario:
         return
         
+    nivel_real = funcionario['nivel_acesso']
+    nivel_efetivo = impersonation_states.get(telegram_id, nivel_real)
+    is_testing = telegram_id in impersonation_states
+        
     estado_atual = user_states.get(telegram_id)
+    
+    # Interceptadores do Modo Testador
+    if estado_atual == "esperando_codigo_teste":
+        codigo = text.strip().upper()
+        if text.lower() == "cancelar":
+            user_states.pop(telegram_id, None)
+            await update.message.reply_text("Simulação cancelada.")
+            return
+            
+        if not codigo.startswith("TST-"):
+            await update.message.reply_text("❌ Código inválido. Para simular Onboarding, você deve usar um *Código de Testador* (que começa com TST-).\nDigite o código novamente ou envie Cancelar.", parse_mode="Markdown")
+            return
+            
+        from services.supabase_service import validar_codigo_teste
+        nivel_teste = validar_codigo_teste(codigo)
+        
+        if not nivel_teste:
+             await update.message.reply_text("❌ Código de teste inválido, expirado ou já utilizado.")
+             return
+             
+        user_states.pop(telegram_id, None)
+        impersonation_states[telegram_id] = nivel_teste
+        
+        from services.supabase_service import adicionar_perfil_teste
+        adicionar_perfil_teste(funcionario['id'], nivel_teste)
+        
+        nome_exibicao = NIVEIS.get(nivel_teste)
+        
+        await update.message.reply_text(f"*(SIMULAÇÃO DE CADASTRO)*\n✅ Código Verificado! Bem-vindo(a) à Master Geek.\nSeu perfil de **{nome_exibicao}** foi salvo nos seus atalhos de teste.", parse_mode="Markdown")
+        await update.message.reply_text(f"Olá {funcionario['nome']}! Sou o Piticão 🐶.\nSua área de trabalho ({nome_exibicao}) já está carregada no teclado abaixo.\n*(Você está no Modo Testador)*", reply_markup=get_menu_por_nivel(nivel_teste, True), parse_mode="Markdown")
+        return
+
+    if text == "🔙 Sair do Teste" and is_testing:
+        impersonation_states.pop(telegram_id, None)
+        await update.message.reply_text("🧪 Teste encerrado. Bem-vindo de volta à conta de Administrador principal.", reply_markup=get_menu_por_nivel(nivel_real, False))
+        return
+        
+    if text == "🧪 Modo Testador" and nivel_real == 4:
+        keyboard = [
+            [InlineKeyboardButton("🔑 Inserir TST- (Simular Novo Acesso)", callback_data="teste_onboarding")]
+        ]
+        
+        perfis = funcionario.get('perfis_teste', [])
+        for p in perfis:
+            keyboard.append([InlineKeyboardButton(f"Perfil {NIVEIS.get(p)}", callback_data=f"teste_nivel_{p}")])
+            
+        await update.message.reply_text("🧪 **Perfis Criados**", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        return
     
     # ==============================================================
     # A PARTIR DAQUI, O USUÁRIO ESTÁ AUTENTICADO COMO FUNCIONÁRIO
@@ -83,6 +163,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not funcionario.get("ativo", True):
         await update.message.reply_text("⛔ *Acesso Negado:*\nSeu acesso ao sistema Piticão está temporariamente suspenso. Procure a Administração.", parse_mode="Markdown")
         return
+        
+    # Interceptador do Saber Mais (Atualizações)
+    if text.lower() in ["saber mais", "saber mais."]:
+        try:
+            with open("latest_release_notes.txt", "r", encoding="utf-8") as f:
+                notas = f.read()
+            await update.message.reply_text(f"📝 *Detalhes da Última Atualização:*\n\n{notas}", parse_mode="Markdown")
+        except:
+            pass
+        return
+        
+    # Verifica reset de sessão (Virada de dia)
+    agora = datetime.now()
+    ultima_vez = last_interaction.get(telegram_id)
+    
+    # Se for a primeira interação ou se virou o dia (passou da meia-noite)
+    if not ultima_vez or agora.date() > ultima_vez.date():
+        persona_atual = funcionario.get('persona', 'Padrão')
+        msg_apres = APRESENTACOES.get(persona_atual, APRESENTACOES["Padrão"])
+        saudacao = obter_saudacao()
+        texto_orientacao = f"*(Sessão Reiniciada)*\n\n{saudacao}!\n{msg_apres}\n\nVocê precisa de ajuda? Acesse o /menu abaixo e siga os caminhos para utilizar a ferramenta."
+        try:
+            await update.message.reply_text(texto_orientacao, parse_mode="Markdown")
+        except: pass
+        
+    last_interaction[telegram_id] = agora
     
     if estado_atual == "esperando_mensagem_broadcast":
         if text.lower() == "cancelar":
@@ -128,6 +234,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         partes = estado_atual.split("_")
         nivel_para_gerar = int(partes[3])
         medalhao = partes[4] if partes[4] != "None" else None
+        is_teste = len(partes) > 5 and partes[5] == "Teste"
         
         nome_customizado = text.strip()
         
@@ -136,7 +243,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             nome_customizado = f"{nome_customizado} ({medalhao} Access)"
         
         from services.supabase_service import gerar_novo_codigo
-        codigo = gerar_novo_codigo(funcionario['id'], nivel_para_gerar, nome_atribuido=nome_customizado, medalhao=medalhao)
+        codigo = gerar_novo_codigo(funcionario['id'], nivel_para_gerar, nome_atribuido=nome_customizado, medalhao=medalhao, is_tester=is_teste)
         user_states.pop(telegram_id, None)
         
         if codigo:
@@ -159,12 +266,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(
                 f"🎟️ *Código de Acesso Gerado com Sucesso!*\n\n"
                 f"Cargo: *{NIVEIS.get(nivel_para_gerar)}*\n"
-                f"Nome Vinculado: *{nome_customizado}*\n"
-                f"Código: `{codigo}`\n\n"
-                f"💡 _Dica: Você pode clicar no código acima para copiar ou usar o botão abaixo para enviar direto pro WhatsApp._",
+                f"Nome Vinculado: *{nome_customizado}*\n\n"
+                f"💡 _Dica: Você pode copiar o código da mensagem abaixo ou usar o botão para enviar direto pro WhatsApp._",
                 parse_mode="Markdown",
                 reply_markup=reply_markup_share
             )
+            # Envia o código em uma mensagem isolada para facilitar a cópia
+            await update.message.reply_text(f"`{codigo}`", parse_mode="Markdown")
         else:
             await update.message.reply_text("❌ Erro ao gerar o código no banco de dados.")
         return
@@ -196,7 +304,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Comando Inicial ou Menu (Boas vindas e exibição do Teclado)
     if text.startswith("/start") or text.startswith("/menu"):
-        await update.message.reply_text(f"Olá {funcionario['nome']}! Sou o Piticão 🐶.\nSua área de trabalho ({NIVEIS.get(funcionario['nivel_acesso'])}) já está carregada no teclado abaixo.", reply_markup=get_menu_por_nivel(funcionario['nivel_acesso']))
+        nome_exibicao = NIVEIS.get(nivel_efetivo)
+        aviso_teste = "\n*(Você está no Modo Testador)*" if is_testing else ""
+        await update.message.reply_text(f"Olá {funcionario['nome']}! Sou o Piticão 🐶.\nSua área de trabalho ({nome_exibicao}) já está carregada no teclado abaixo.{aviso_teste}", reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing), parse_mode="Markdown")
         return
 
     # Tratamento de Fotos (OCR de Notas / Produtos)
@@ -237,38 +347,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # LÓGICA DOS BOTÕES DOS MENUS INTERATIVOS
     # ==============================================================
     
-    # --- Menu Nível 1 (Quiosque) ---
-    if text == "📦 Baixa em Encomenda":
-        from services.supabase_service import buscar_encomendas_pendentes
-        pendentes = buscar_encomendas_pendentes(funcionario['id'])
-        if not pendentes:
-            await update.message.reply_text("✅ Seu quiosque não tem nenhuma encomenda pendente de retirada no momento.")
-            return
-            
-        msg = "📦 *Encomendas Pendentes para Retirada:*\nSelecione uma clicando no botão abaixo.\n\n"
-        keyboard = []
-        for enc in pendentes:
-            cliente = enc.get('clientes', {})
-            nome_cliente = cliente.get('nome', 'Cliente')
-            codigo = enc['codigo_retirada']
-            valor = enc['valor_original']
-            msg += f"🔹 *{nome_cliente}* - Código: `{codigo}` - Valor: R$ {valor}\n"
-            keyboard.append([InlineKeyboardButton(f"Dar Baixa: {codigo} ({nome_cliente})", callback_data=f"iniciar_baixa_{enc['id']}_{valor}")])
-            
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(msg, parse_mode="Markdown", reply_markup=reply_markup)
-        return
 
-    elif text == "🏷️ Cadastrar Produto":
-        user_states[telegram_id] = "esperando_foto_produto"
-        await update.message.reply_text("📸 *Cadastro Rápido:*\nPor favor, envie uma foto do produto onde o **Código de Barras (EAN)** esteja bem legível.", parse_mode="Markdown")
-        return
-
-    elif text == "🔍 Consultar Estoque":
-        user_states[telegram_id] = "esperando_busca_estoque"
-        await update.message.reply_text("🔍 *Busca de Estoque:*\nDigite o nome do produto ou envie uma foto do código de barras.", parse_mode="Markdown")
-        return
-        
     # --- Menu Compartilhado: Escolher Persona ---
     if text == "🎭 Escolher Persona":
         keyboard = [
@@ -304,12 +383,90 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(texto_ranking, parse_mode="Markdown")
         return
 
-    # --- Menu Nível 2 (Marketing) ---
-    if text == "🏷️ Cadastrar Produto":
-        await update.message.reply_text("Ok! Tire uma foto do produto onde o **código de barras (EAN)** fique bem legível e me envie.", parse_mode="Markdown")
+    # Se o usuário está no meio de um fluxo de cadastro e digitou "pular"
+    estado_atual = user_states.get(telegram_id)
+    if estado_atual and estado_atual.startswith("esperando_codigo_produto_novo") and text.lower().strip() == "pular":
+        from services.supabase_service import salvar_produto
+        partes = estado_atual.split("|||")
+        nome_salvo = partes[1]
+        marca_salvo = partes[2]
+        foto_salva = partes[3]
+        
+        produto_db = {
+            "nome": nome_salvo,
+            "marca": marca_salvo,
+            "ean": None,
+            "foto_original_url": foto_salva,
+            "foto_profissional_url": None,
+            "status_scraping": "NAO_NECESSARIO"
+        }
+        salvo = salvar_produto(produto_db)
+        if salvo:
+            await update.message.reply_text("✅ Produto cadastrado no Catálogo Geral (sem código de barras).")
+            user_states.pop(telegram_id, None)
+        else:
+            await update.message.reply_text("❌ Erro ao salvar no banco.")
         return
-    elif text == "🔍 Consultar Estoque":
-        await update.message.reply_text("Digite o nome do produto ou o código de barras para consulta rápida:")
+
+    # --- Menu Nível 1 (Quiosque) ---
+    if text == "📦 Estoque":
+        user_states[telegram_id] = "esperando_foto_entrada"
+        await update.message.reply_text("📦 **ESTOQUE (Entrada/Cadastro)**
+
+Envie a foto do produto + código de barras. Se o produto for novo, ele será cadastrado automaticamente. Se já existir, apenas daremos entrada (+1).", parse_mode="Markdown")
+        return
+        
+    elif text == "🛒 Venda":
+        user_states[telegram_id] = "esperando_foto_venda"
+        await update.message.reply_text("🛒 **REGISTRAR VENDA (-1)**
+
+Envie a **foto do código de barras** (ou do produto) que acabou de ser vendido.", parse_mode="Markdown")
+        return
+        
+    elif text == "📋 Reposição":
+        from services.supabase_service import supabase
+        resp = supabase.table("estoque").select("quantidade, produtos(nome, ean)").eq("quiosque_id", funcionario['id']).lte("quantidade", 0).execute()
+        
+        if not resp.data:
+            await update.message.reply_text("✅ O seu quiosque não tem nenhum item esgotado no momento!")
+            return
+            
+        texto = "🚨 **LISTA DE REPOSIÇÃO** 🚨
+
+Os seguintes itens estão esgotados no seu quiosque:
+
+"
+        for item in resp.data:
+            prod = item.get("produtos", {})
+            nome = prod.get("nome", "Produto Desconhecido")
+            ean = prod.get("ean", "Sem código")
+            texto += f"• {nome} (EAN: {ean})
+"
+            
+        import urllib.parse
+        msg_zap = urllib.parse.quote(texto.replace("**", "*"))
+        link_zap = f"https://api.whatsapp.com/send?text={msg_zap}"
+        
+        keyboard = [[InlineKeyboardButton("📲 Enviar para Gisele", url=link_zap)]]
+        await update.message.reply_text(texto, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+        
+    elif text == "📦 Encomendas":
+        from services.supabase_service import buscar_encomendas_pendentes
+        encomendas = buscar_encomendas_pendentes(funcionario['id'])
+        if not encomendas:
+            await update.message.reply_text("✅ *Tudo limpo!*
+Você não tem nenhuma encomenda aguardando ação neste momento.", parse_mode="Markdown")
+            return
+        texto = f"📦 Você tem **{len(encomendas)}** encomendas aguardando ação:
+
+Selecione um pedido abaixo para gerenciar:"
+        keyboard = []
+        for enc in encomendas:
+            status_emoji = "⏳" if enc['status'] == "PENDENTE" else "🛍️"
+            nome_botao = f"{status_emoji} #{enc['codigo_pedido']} - {enc['cliente_nome']}"
+            keyboard.append([InlineKeyboardButton(nome_botao, callback_data=f"enc_detalhe_{enc['id']}")])
+        await update.message.reply_text(texto, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
     # --- Menu Nível 2 (Marketing) ---
@@ -345,7 +502,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("1️⃣ Quiosque (Vendedor)", callback_data="gerar_1")],
             [InlineKeyboardButton("2️⃣ Marketing", callback_data="gerar_2")],
             [InlineKeyboardButton("3️⃣ Boss", callback_data="gerar_3")],
-            [InlineKeyboardButton("4️⃣ Administrador (ADM)", callback_data="gerar_4")]
+            [InlineKeyboardButton("4️⃣ Administrador (ADM)", callback_data="gerar_4")],
+            [InlineKeyboardButton("🧪 Código de Testador (TST-)", callback_data="gerar_teste_menu")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text("Para qual tipo de usuário você deseja gerar o código de acesso?", reply_markup=reply_markup)
@@ -412,6 +570,29 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     
     if data.startswith("gerar_"):
+        if data == "gerar_teste_menu":
+            keyboard = [
+                [InlineKeyboardButton("1️⃣ Quiosque (Teste)", callback_data="gerar_teste_nivel_1")],
+                [InlineKeyboardButton("2️⃣ Marketing (Teste)", callback_data="gerar_teste_nivel_2")],
+                [InlineKeyboardButton("3️⃣ Boss (Teste)", callback_data="gerar_teste_nivel_3")]
+            ]
+            await query.edit_message_text("Para qual perfil você quer gerar um Código de Teste (TST-)?", reply_markup=InlineKeyboardMarkup(keyboard))
+            return
+            
+        if data.startswith("gerar_teste_nivel_"):
+            nivel = int(data.replace("gerar_teste_nivel_", ""))
+            nome_nivel = NIVEIS.get(nivel)
+            nome_customizado = f"Perfil {nome_nivel}"
+            
+            from services.supabase_service import gerar_novo_codigo
+            codigo = gerar_novo_codigo(funcionario['id'], nivel, nome_atribuido=nome_customizado, is_tester=True)
+            
+            if codigo:
+                await query.edit_message_text(f"✅ Código TST- gerado para {nome_nivel}:\n\n`{codigo}`\n\nVá no Modo Testador e insira este código.", parse_mode="Markdown")
+            else:
+                await query.edit_message_text("❌ Erro ao gerar o código de teste.")
+            return
+
         nivel = int(data.split("_")[1])
         
         if nivel > 1:
@@ -425,14 +606,47 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_states[telegram_id] = f"esperando_nome_codigo_{nivel}_None"
             await query.edit_message_text(f"Você escolheu gerar um código para *{NIVEIS.get(nivel)}*.\n\nPor favor, digite o **nome** que será atribuído a este usuário ou quiosque (Ex: `Equipe Shopping Metropolitano`).\n\n(Ou digite `Cancelar`)", parse_mode="Markdown")
 
-    elif data.startswith("iniciar_baixa_"):
-        # iniciar_baixa_ENCOMENDAID_VALOR
-        partes = data.split("_")
-        encomenda_id = partes[2]
-        valor_original = partes[3]
+    elif data.startswith("enc_detalhe_"):
+        enc_id = data.replace("enc_detalhe_", "")
+        from services.supabase_service import supabase
+        resp = supabase.table("encomendas").select("*").eq("id", enc_id).execute()
+        if not resp.data: return
+        enc = resp.data[0]
         
-        user_states[telegram_id] = f"esperando_valor_final_{encomenda_id}"
-        await query.edit_message_text(f"Você está dando baixa na encomenda.\n\nO valor previsto era de **R$ {valor_original}**.\n\nPor favor, digite o valor FINAL exato que foi pago no sistema da loja para concluirmos a transação. (Ex: 159.90)\n\n(Ou digite `Cancelar`)", parse_mode="Markdown")
+        texto = f"🛒 *Pedido #{enc['codigo_pedido']}*\n"
+        texto += f"👤 Cliente: {enc['cliente_nome']}\n"
+        texto += f"📱 Telefone: {enc.get('cliente_telefone', 'N/A')}\n"
+        texto += f"💰 Valor: R$ {enc['valor_total']}\n\n"
+        texto += f"📦 *Produtos:*\n{enc['produtos_resumo']}\n\n"
+        
+        keyboard = []
+        if enc['status'] == "PENDENTE":
+            texto += "⚠️ *Status:* Aguardando Separação"
+            keyboard.append([InlineKeyboardButton("✅ Confirmar Separação", callback_data=f"enc_status_{enc['id']}_PRONTO_RETIRADA")])
+        elif enc['status'] == "PRONTO_RETIRADA":
+            texto += "🛍️ *Status:* Pronto para Retirada"
+            keyboard.append([InlineKeyboardButton("🛍️ Dar Baixa (Entregue)", callback_data=f"enc_status_{enc['id']}_CONCLUIDO")])
+            
+        keyboard.append([InlineKeyboardButton("❌ Problema / Cancelar", callback_data=f"enc_status_{enc['id']}_CANCELADO")])
+        keyboard.append([InlineKeyboardButton("🔙 Voltar", callback_data="enc_voltar")])
+        
+        await query.edit_message_text(texto, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+        
+    elif data.startswith("enc_status_"):
+        partes = data.split("_")
+        enc_id = partes[2]
+        novo_status = partes[3]
+        
+        from services.supabase_service import atualizar_encomenda_status
+        sucesso = atualizar_encomenda_status(enc_id, novo_status)
+        if sucesso:
+            status_msg = {"PRONTO_RETIRADA": "Produto separado!", "CONCLUIDO": "Baixa realizada (Entregue)!", "CANCELADO": "Pedido cancelado."}
+            await query.edit_message_text(f"✅ Status atualizado com sucesso: {status_msg.get(novo_status, novo_status)}")
+        else:
+            await query.edit_message_text("❌ Falha ao atualizar o status.")
+            
+    elif data == "enc_voltar":
+        await query.edit_message_text("Ação cancelada. Utilize o menu '📦 Encomendas' novamente para atualizar a lista.")
 
     elif data.startswith("medalhao_"):
         partes = data.split("_")
@@ -513,19 +727,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if atualizado:
             # Incrementa o banco de dados do ranking
             incrementar_uso_persona(nova_persona)
-            apresentacoes = {
-                "Homem-Aranha": "🕸️🕷️ **Homem-Aranha assumindo o controle!** Com grandes poderes vêm grandes responsabilidades corporativas. O que vamos acessar no menu do sistema hoje, parceiro?",
-                "Deadpool": "⚔️🌮 **Deadpool na área!** Sério que me colocaram num chat corporativo? Tá bom, vamos fingir que eu trabalho aqui. Qual botão do menu a gente vai apertar hoje?",
-                "Batman": "🦇🌑 **...** Eu sou a noite. O sistema está seguro e eu estou monitorando tudo. O que você quer investigar no menu?",
-                "Alfred": "🎩☕ **Aos seus serviços.** O sistema corporativo está polido e pronto para uso. O que deseja visualizar no menu neste momento?",
-                "C3PO": "🤖✨ **Saudações, eu sou C-3PO!** Especialista em relações cibernético-humanas e... sistemas de estoque! Em qual menu corporativo posso auxiliá-lo de forma eficiente hoje?",
-                "Darth Vader": "🌑⚔️ **O Lado Sombrio está no controle.** Não me decepcione com erros. Escolha a funcionalidade do menu imediatamente.",
-                "Vegeta": "💥😠 **Príncipe Vegeta chegou!** Não me faça perder tempo com tolices. O trabalho é a prioridade! Qual funcionalidade do menu você precisa usar agora?",
-                "Naruto": "🍜🦊 **Tô certo! Naruto Uzumaki chegou!** Eu nunca desisto de um chamado no sistema! O que nós vamos acessar no menu hoje?",
-                "Hermione": "🪄📚 **Olá, preste atenção!** É Leviosa, não Leviosá. Mantenha o sistema organizado. O que você precisa acessar no nosso menu principal hoje?",
-                "Padrão": "🐶👕 **Piticão na área!** Au au! Estou pronto para ajudar a Master Geek. Qual botão do menu vamos acessar hoje?"
-            }
-            mensagem_persona = apresentacoes.get(nova_persona, "🐶👕 **Piticão na área!** Au au! Estou pronto para ajudar a Master Geek. Qual botão do menu vamos acessar hoje?")
+            
+            mensagem_persona = APRESENTACOES.get(nova_persona, APRESENTACOES["Padrão"])
             
             await query.edit_message_text(f"✅ Persona alterada para: *{nova_persona}*", parse_mode="Markdown")
             try:
@@ -533,71 +736,212 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception as e:
                 print("Erro ao enviar mensagem de persona:", e)
         else:
-            await query.edit_message_text("❌ Falha ao atualizar a persona.")
+            await query.edit_message_text("❌ Erro ao alterar a persona.")
+            
+    elif data == "teste_onboarding":
+        user_states[telegram_id] = "esperando_codigo_teste"
+        await query.edit_message_text("🔑 Envie o *Código de Testador* (TST-...) que você gerou para simularmos o seu primeiro acesso:", parse_mode="Markdown")
+
+    elif data.startswith("teste_nivel_"):
+        nivel_teste = int(data.replace("teste_nivel_", ""))
+        impersonation_states[telegram_id] = nivel_teste
+        nome_nivel = NIVEIS.get(nivel_teste, "Desconhecido")
+        await query.edit_message_text(f"🧪 Modo Testador ativado com sucesso!\nVocê agora está usando o bot como: *{nome_nivel}*", parse_mode="Markdown")
+        await context.bot.send_message(chat_id=telegram_id, text="Seu menu foi atualizado automaticamente. Para sair, clique no botão '🔙 Sair do Teste' no final da lista.", reply_markup=get_menu_por_nivel(nivel_teste, True))
+
+    elif data == "saber_mais_att":
+        try:
+            with open("latest_release_notes.txt", "r", encoding="utf-8") as f:
+                notas = f.read()
+            await query.edit_message_text(f"📝 *Detalhes da Última Atualização:*\n\n{notas}", parse_mode="Markdown")
+        except:
+            await query.edit_message_text("Não há detalhes adicionais para esta atualização.")
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Processa as fotos enviadas pelos usuários (ex: Código de Barras)."""
-    if not update.message or not update.message.photo:
+    """Lida com o recebimento de imagens (produtos, códigos de barras, etc)."""
+    if not update.message.photo:
         return
         
     telegram_id = str(update.message.from_user.id)
-    from services.supabase_service import get_funcionario_by_telegram_id
+    from services.supabase_service import get_funcionario_by_telegram_id, salvar_produto, buscar_produto_por_ean, supabase
     funcionario = get_funcionario_by_telegram_id(telegram_id)
     
     if not funcionario:
         return
         
     estado_atual = user_states.get(telegram_id)
+    if not estado_atual:
+        await update.message.reply_text("Por favor, selecione uma opção no menu primeiro (ex: Estoque, Venda).")
+        return
+
+    foto_file = await update.message.photo[-1].get_file()
     
-    if estado_atual in ["esperando_foto_produto", "esperando_busca_estoque"]:
-        await context.bot.send_chat_action(chat_id=telegram_id, action='typing')
-        await update.message.reply_text("🔎 Analisando o código de barras com IA...")
+    import json
+    import tempfile
+    import os
+    from services.gemini_service import analisar_imagem_gemini
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+        await foto_file.download_to_drive(tmp_file.name)
+        caminho = tmp_file.name
         
-        # Pega a foto em melhor resolução
-        photo_file = await update.message.photo[-1].get_file()
+    msg_espera = await update.message.reply_text("Processando imagem...")
         
-        import tempfile
-        import os
-        from services.gemini_service import analisar_imagem_gemini
-        from services.supabase_service import buscar_produto_por_ean
+    resultado_json = analisar_imagem_gemini(caminho)
+    
+    try:
+        os.remove(caminho)
+    except:
+        pass
         
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
-            caminho_temporario = tmp.name
-            
-        try:
-            await photo_file.download_to_drive(custom_path=caminho_temporario)
-            resultado_ia = analisar_imagem_gemini(caminho_temporario)
-            
-            # O Gemini deve retornar apenas números se achar o EAN
-            ean_encontrado = ''.join(filter(str.isdigit, resultado_ia))
-            
-            if not ean_encontrado or len(ean_encontrado) < 5:
-                await update.message.reply_text("❌ Não consegui ler nenhum código de barras claro na imagem. Tente tirar a foto mais de perto e sem reflexo.")
+    try:
+        limpo = resultado_json.replace("```json", "").replace("```", "").strip()
+        dados = json.loads(limpo)
+        
+        nome = dados.get("nome")
+        marca = dados.get("marca")
+        ean = dados.get("ean")
+
+        # --- FLUXO DE ENTRADA DE ESTOQUE (CADASTRO ÚNICO) ---
+        if estado_atual == "esperando_foto_entrada":
+            if not nome:
+                await msg_espera.edit_text("❌ Imagem não lida (Não identifiquei o produto).")
                 return
                 
-            if estado_atual == "esperando_foto_produto":
-                # Verifica se o produto já existe
-                produto_existente = buscar_produto_por_ean(ean_encontrado)
-                if produto_existente:
-                    from services.supabase_service import adicionar_estoque
-                    adicionar_estoque(produto_existente['id'], funcionario['id'], 1)
-                    await update.message.reply_text(f"📦 O produto *{produto_existente['nome']}* (EAN: {ean_encontrado}) já existe no catálogo.\n✅ Adicionado +1 no estoque do seu quiosque!", parse_mode="Markdown")
-                    user_states.pop(telegram_id, None)
+            produto_id = None
+            if ean:
+                existente = buscar_produto_por_ean(ean)
+                if existente: 
+                    produto_id = existente['id']
+            
+            # Se não achou pelo EAN, cria o produto!
+            if not produto_id:
+                if not ean:
+                    # Precisamos do EAN para cadastrar novo
+                    user_states[telegram_id] = f"esperando_codigo_entrada|||{nome}|||{marca or ''}|||{foto_file.file_id}"
+                    await msg_espera.edit_text(f"✅ Produto *{nome}* identificado como NOVO!\n\n📸 **Agora envie a foto apenas do código de barras** da embalagem para finalizarmos o cadastro e dar entrada.", parse_mode="Markdown")
+                    return
                 else:
-                    user_states[telegram_id] = f"esperando_nome_produto_{ean_encontrado}"
-                    await update.message.reply_text(f"📝 EAN lido: `{ean_encontrado}`\n\nEste produto é novo! Qual é o **nome** dele? (Ex: Funko Pop Batman)", parse_mode="Markdown")
-                    
-            elif estado_atual == "esperando_busca_estoque":
-                produto_existente = buscar_produto_por_ean(ean_encontrado)
-                if produto_existente:
-                    from services.supabase_service import supabase
-                    response = supabase.table("estoque").select("*").eq("produto_id", produto_existente['id']).eq("quiosque_id", funcionario['id']).execute()
-                    qtd = response.data[0]['quantidade'] if response.data else 0
-                    await update.message.reply_text(f"🔍 **Resultado da Busca:**\n\nProduto: *{produto_existente['nome']}*\nEAN: `{ean_encontrado}`\n\n📦 Seu Estoque: **{qtd} unidades**.", parse_mode="Markdown")
-                else:
-                    await update.message.reply_text(f"❌ Produto (EAN: {ean_encontrado}) não foi encontrado no catálogo da Master Geek.")
-                user_states.pop(telegram_id, None)
+                    # Tem nome e EAN, cadastra novo direto
+                    produto_db = {
+                        "nome": nome,
+                        "marca": marca,
+                        "ean": ean,
+                        "foto_original_url": foto_file.file_id,
+                        "foto_profissional_url": None,
+                        "status_scraping": "NAO_NECESSARIO"
+                    }
+                    salvo = salvar_produto(produto_db)
+                    if salvo:
+                        # Busca o ID do produto recem criado
+                        novo_prod = buscar_produto_por_ean(ean)
+                        produto_id = novo_prod['id']
+                    else:
+                        await msg_espera.edit_text("❌ Erro ao salvar novo produto.")
+                        return
+                        
+            # Com produto_id garantido, damos entrada no estoque
+            resp_est = supabase.table("estoque").select("*").eq("produto_id", produto_id).eq("quiosque_id", funcionario['id']).execute()
+            if resp_est.data:
+                nova_qtd = resp_est.data[0]['quantidade'] + 1
+                supabase.table("estoque").update({"quantidade": nova_qtd}).eq("id", resp_est.data[0]['id']).execute()
+            else:
+                supabase.table("estoque").insert({"produto_id": produto_id, "quiosque_id": funcionario['id'], "quantidade": 1}).execute()
                 
-        finally:
-            if os.path.exists(caminho_temporario):
-                os.remove(caminho_temporario)
+            await msg_espera.edit_text("✅ Produto registrado no Catálogo (se novo) e Entrada de Estoque (+1) efetuada!")
+            user_states.pop(telegram_id, None)
+            
+        # --- FLUXO DE 2ª FOTO DA ENTRADA DE ESTOQUE ---
+        elif estado_atual.startswith("esperando_codigo_entrada"):
+            partes = estado_atual.split("|||")
+            nome_salvo = partes[1]
+            marca_salvo = partes[2]
+            foto_salva = partes[3]
+            
+            if not ean:
+                await msg_espera.edit_text("❌ Não consegui ler nenhum código de barras nesta foto. Tente enviar de perto.")
+                return
+                
+            existente = buscar_produto_por_ean(ean)
+            if existente:
+                produto_id = existente['id']
+            else:
+                produto_db = {
+                    "nome": nome_salvo,
+                    "marca": marca_salvo,
+                    "ean": ean,
+                    "foto_original_url": foto_salva,
+                    "foto_profissional_url": None,
+                    "status_scraping": "NAO_NECESSARIO"
+                }
+                salvar_produto(produto_db)
+                novo_prod = buscar_produto_por_ean(ean)
+                produto_id = novo_prod['id']
+                
+            # Entrada no estoque
+            resp_est = supabase.table("estoque").select("*").eq("produto_id", produto_id).eq("quiosque_id", funcionario['id']).execute()
+            if resp_est.data:
+                nova_qtd = resp_est.data[0]['quantidade'] + 1
+                supabase.table("estoque").update({"quantidade": nova_qtd}).eq("id", resp_est.data[0]['id']).execute()
+            else:
+                supabase.table("estoque").insert({"produto_id": produto_id, "quiosque_id": funcionario['id'], "quantidade": 1}).execute()
+                
+            await msg_espera.edit_text("✅ Produto cadastrado com sucesso e Entrada de Estoque (+1) efetuada!")
+            user_states.pop(telegram_id, None)
+
+        # --- FLUXO DE VENDA DE PRODUTO ---
+        elif estado_atual == "esperando_foto_venda":
+            if not ean and not nome:
+                await msg_espera.edit_text("❌ Imagem não lida.")
+                return
+                
+            produto_id = None
+            if ean:
+                existente = buscar_produto_por_ean(ean)
+                if existente: produto_id = existente['id']
+            if not produto_id and nome:
+                resp = supabase.table("produtos").select("*").ilike("nome", f"%{nome}%").execute()
+                if resp.data: produto_id = resp.data[0]['id']
+                
+            if not produto_id:
+                # Se não achar o produto, cadastra com fallback e registra a venda
+                # Mas para venda, melhor garantir que tem EAN
+                if not ean:
+                    await msg_espera.edit_text("❌ Produto não encontrado e sem EAN na foto. Tente a foto do código de barras de perto.")
+                    return
+                
+                produto_db = {
+                    "nome": nome or "Produto Desconhecido (Vendido s/ Cadastro)",
+                    "marca": marca,
+                    "ean": ean,
+                    "foto_original_url": foto_file.file_id,
+                    "foto_profissional_url": None,
+                    "status_scraping": "NAO_NECESSARIO"
+                }
+                salvar_produto(produto_db)
+                novo_prod = buscar_produto_por_ean(ean)
+                produto_id = novo_prod['id']
+                
+            # Registra a venda
+            supabase.table("vendas").insert({
+                "produto_ean": ean,
+                "quiosque_id": funcionario['id'],
+                "quantidade": 1
+            }).execute()
+            
+            # Subtrai do estoque
+            resp_est = supabase.table("estoque").select("*").eq("produto_id", produto_id).eq("quiosque_id", funcionario['id']).execute()
+            if resp_est.data:
+                nova_qtd = resp_est.data[0]['quantidade'] - 1
+                supabase.table("estoque").update({"quantidade": nova_qtd}).eq("id", resp_est.data[0]['id']).execute()
+            else:
+                supabase.table("estoque").insert({"produto_id": produto_id, "quiosque_id": funcionario['id'], "quantidade": -1}).execute()
+                
+            await msg_espera.edit_text("✅ Venda Registrada (-1). Baixa no estoque efetuada!")
+            user_states.pop(telegram_id, None)
+
+    except json.JSONDecodeError:
+        await msg_espera.edit_text("❌ Imagem não lida.")
+    except Exception as e:
+        print(f"Error in handle_photo: {e}")
+        await msg_espera.edit_text("❌ Ocorreu um erro interno.")

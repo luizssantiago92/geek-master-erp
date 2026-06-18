@@ -78,6 +78,29 @@ def validar_e_usar_codigo(telegram_id: str, codigo: str, full_name: str):
         print(f"Erro ao usar código de acesso: {e}")
         return None
 
+def validar_codigo_teste(codigo: str):
+    """Valida um código de teste sem registrar o funcionário no banco. Apenas consome o código e retorna o nível."""
+    try:
+        response = supabase.table("codigos_acesso").select("*").eq("codigo", codigo).eq("usado", False).execute()
+        
+        if not response.data:
+            return None # Código não existe ou já usado
+            
+        codigo_db = response.data[0]
+        
+        # Verificar se não está expirado
+        expira = datetime.fromisoformat(codigo_db["expira_em"].replace("Z", "+00:00"))
+        if datetime.now(expira.tzinfo) > expira:
+            return None # Código expirado
+            
+        # Marcar como usado
+        supabase.table("codigos_acesso").update({"usado": True}).eq("id", codigo_db["id"]).execute()
+        
+        return codigo_db["nivel_acesso"]
+    except Exception as e:
+        print(f"Erro ao validar código de teste: {e}")
+        return None
+
 def registrar_master_admin(telegram_id: str, telegram_name: str):
     """Registra o primeiro usuário como ADM (Nível 4)."""
     try:
@@ -95,14 +118,16 @@ def registrar_master_admin(telegram_id: str, telegram_name: str):
         print(f"Erro ao registrar master admin: {e}")
         return False
 
-def gerar_novo_codigo(id_criador: str, nivel_acesso: int, nome_atribuido: str = None, medalhao: str = None):
+def gerar_novo_codigo(id_criador: str, nivel_acesso: int, nome_atribuido: str = None, medalhao: str = None, is_tester: bool = False):
     """Gera um novo código de acesso aleatório válido por 30 minutos, podendo pré-definir o nome do usuário e o medalhão."""
     try:
         import secrets
         letras = {1: 'Q', 2: 'M', 3: 'B', 4: 'A'}
         letra_nivel = letras.get(nivel_acesso, 'X')
         numero_aleatorio = secrets.randbelow(10000)
-        codigo = f"PTC-{numero_aleatorio:04d}{letra_nivel}"
+        
+        prefixo = "TST" if is_tester else "PTC"
+        codigo = f"{prefixo}-{numero_aleatorio:04d}{letra_nivel}"
         
         expiracao = (datetime.utcnow() + timedelta(minutes=30)).isoformat()
         
@@ -353,5 +378,68 @@ def baixar_encomenda(encomenda_id: str, valor_final: float) -> bool:
         }).eq("id", encomenda_id).execute()
         return len(response.data) > 0
     except Exception as e:
-        print(f"Erro ao dar baixa na encomenda: {e}")
         return False
+
+def salvar_produto(produto_data: dict) -> bool:
+    """Pré-cadastra um produto no catálogo e retorna True se der certo."""
+    try:
+        response = supabase.table("produtos").insert(produto_data).execute()
+        return len(response.data) > 0
+    except Exception as e:
+        print(f"Erro ao salvar produto: {e}")
+        return False
+
+def buscar_produto_por_ean(ean: str):
+    try:
+        response = supabase.table("produtos").select("*").eq("ean", ean).execute()
+        if response.data:
+            return response.data[0]
+        return None
+    except Exception as e:
+        print(f"Erro ao buscar produto por ean: {e}")
+        return None
+
+def buscar_encomendas_pendentes(quiosque_id: str):
+    try:
+        response = supabase.table("encomendas").select("*").eq("quiosque_id", quiosque_id).in_("status", ["PENDENTE", "PRONTO_RETIRADA"]).execute()
+        return response.data
+    except Exception as e:
+        print(f"Erro ao buscar encomendas pendentes: {e}")
+        return []
+
+def atualizar_encomenda_status(encomenda_id: str, novo_status: str):
+    try:
+        supabase.table("encomendas").update({"status": novo_status, "atualizado_em": datetime.utcnow().isoformat()}).eq("id", encomenda_id).execute()
+        return True
+    except Exception as e:
+        print(f"Erro ao atualizar encomenda: {e}")
+        return False
+
+def adicionar_perfil_teste(funcionario_id: str, nivel_teste: int):
+    try:
+        response = supabase.table("funcionarios").select("perfis_teste").eq("id", funcionario_id).execute()
+        if response.data:
+            perfis = response.data[0].get("perfis_teste") or []
+            if nivel_teste not in perfis:
+                perfis.append(nivel_teste)
+                supabase.table("funcionarios").update({"perfis_teste": perfis}).eq("id", funcionario_id).execute()
+        return True
+    except Exception as e:
+        print(f"Erro ao adicionar perfil teste: {e}")
+        return False
+
+def validar_codigo_teste(codigo: str):
+    """Verifica se o código de teste é válido e retorna o nível de acesso do perfil simulado."""
+    try:
+        response = supabase.table("codigos_acesso").select("*").eq("codigo", codigo).eq("usado", False).execute()
+        if not response.data:
+            return None
+            
+        cod = response.data[0]
+        # Códigos de teste não são marcados como 'usados' para permitir testes repetidos, 
+        # mas expiram de qualquer forma após 30 mins
+        
+        return cod['nivel_acesso']
+    except Exception as e:
+        print(f"Erro ao validar código teste: {e}")
+        return None

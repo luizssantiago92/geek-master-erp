@@ -80,3 +80,4 @@ test_models.py
 
 # Outros
 .agents/
+*.pdf 

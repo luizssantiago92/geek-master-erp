@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+print("DEBUG: GEMINI_API_KEY loaded starts with:", GEMINI_API_KEY[:10] if GEMINI_API_KEY else "None")
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
@@ -18,20 +19,36 @@ def analisar_imagem_gemini(caminho_imagem: str):
         return "Erro: Chave do Gemini não configurada no .env."
         
     try:
+        # LOG API KEY FOR DEBUGGING
+        if GEMINI_API_KEY.startswith("AQ."):
+            pass # We know it's the right one
+        else:
+            return f"Erro Crítico: A chave em uso é antiga! Chave atual: {GEMINI_API_KEY[:10]}..."
+            
+        # Ler a imagem como bytes para enviar inline e evitar o bug do upload_file com chaves AQ.
+        with open(caminho_imagem, "rb") as image_file:
+            image_data = image_file.read()
+            
+        image_blob = {
+            'mime_type': 'image/jpeg',
+            'data': image_data
+        }
+        
         # O modelo gemini-2.5-flash suporta imagens e visão
         model = genai.GenerativeModel('gemini-2.5-flash')
         
-        # Fazer upload do arquivo para a API do Gemini
-        imagem_upload = genai.upload_file(path=caminho_imagem)
-        
         prompt = (
-            "Você é um assistente de automação corporativa. Analise a imagem enviada. "
-            "Se for uma Nota Fiscal de Consumidor (DANFE NFC-e), extraia e retorne APENAS o CPF do consumidor, no formato numérico (ex: 12345678900). Se não achar CPF, retorne 'CPF_NAO_ENCONTRADO'. "
-            "Se for a foto de um produto, tente ler e retornar APENAS o código de barras (EAN), formato numérico. "
-            "Não responda mais nada além dos números solicitados ou 'CPF_NAO_ENCONTRADO'."
+            "Você é um assistente da Master Geek Piticas. Analise a imagem enviada. "
+            "Se for uma foto de um produto (Camiseta, Funko, etc), identifique o produto. "
+            "Retorne a resposta ESTRITAMENTE em formato JSON válido com as seguintes chaves: 'nome', 'marca', 'ean'. "
+            "Se não identificar a marca (ex: Zona Criativa, Funko, Piticas), deduza pelo produto ou deixe null. "
+            "Se não identificar o EAN na imagem, deixe null. "
+            "EXEMPLO de retorno: {\"nome\": \"Camiseta Batman Classic\", \"marca\": \"Piticas\", \"ean\": \"7891234567890\"}. "
+            "Não coloque a palavra json ou crases. Retorne APENAS o JSON puro. "
+            "Se a foto for uma Nota Fiscal (DANFE), mude a chave para 'cpf', ex: {\"cpf\": \"12345678900\"}."
         )
         
-        response = model.generate_content([imagem_upload, prompt])
+        response = model.generate_content([image_blob, prompt])
         
         return response.text.strip()
     except Exception as e:
