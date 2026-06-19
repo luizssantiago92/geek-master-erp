@@ -37,7 +37,7 @@ APRESENTACOES = {
     "Vegeta": "💥😠 **Príncipe Vegeta chegou!** Não me faça perder tempo com tolices. O trabalho é a prioridade! Qual funcionalidade do menu você precisa usar agora?",
     "Naruto": "🍜🦊 **Tô certo! Naruto Uzumaki chegou!** Eu nunca desisto de um chamado no sistema! O que nós vamos acessar no menu hoje?",
     "Hermione": "🪄📚 **Olá, preste atenção!** É Leviosa, não Leviosá. Mantenha o sistema organizado. O que você precisa acessar no nosso menu principal hoje?",
-    "Padrão": "🐶👕 **Piticão na área!** Au au! Estou pronto para ajudar a Master Geek. Qual botão do menu vamos acessar hoje?"
+    "Padrão": "🐶👕 **Piticão na área!** Au au! Estou pronto para ajudar a ERP Project. Qual botão do menu vamos acessar hoje?"
 }
 
 load_dotenv()
@@ -195,7 +195,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         nome_exibicao = NIVEIS.get(nivel_teste)
         
-        await update.message.reply_text(f"*(SIMULAÇÃO DE CADASTRO)*\n✅ Código Verificado! Bem-vindo(a) à Master Geek.\nSeu perfil de **{nome_exibicao}** foi salvo nos seus atalhos de teste.", parse_mode="Markdown")
+        await update.message.reply_text(f"*(SIMULAÇÃO DE CADASTRO)*\n✅ Código Verificado! Bem-vindo(a) à ERP Project.\nSeu perfil de **{nome_exibicao}** foi salvo nos seus atalhos de teste.", parse_mode="Markdown")
         await update.message.reply_text(f"Olá {funcionario['nome']}! Sou o Piticão 🐶.\nSua área de trabalho ({nome_exibicao}) já está carregada no teclado abaixo.\n*(Você está no Modo Testador)*", reply_markup=get_menu_por_nivel(nivel_teste, True), parse_mode="Markdown")
         return
 
@@ -503,7 +503,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg_zap = urllib.parse.quote(texto.replace("**", "*"))
         link_zap = f"https://api.whatsapp.com/send?text={msg_zap}"
         
-        keyboard = [[InlineKeyboardButton("📲 Enviar para Gisele", url=link_zap)]]
+        keyboard = [[InlineKeyboardButton("📲 Enviar para Gerente 1", url=link_zap)]]
         await update.message.reply_text(texto, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
         return
         
@@ -779,7 +779,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         nivel = int(partes[1])
         medalhao = partes[2]
         user_states[telegram_id] = f"esperando_nome_codigo_{nivel}_{medalhao}"
-        await query.edit_message_text(f"Patente selecionada: *{medalhao}*\n\nPor favor, digite o **nome** que será atribuído a este usuário (Ex: `Bruno`).\nO sufixo `({medalhao} Access)` será adicionado automaticamente.\n\n(Ou digite `Cancelar`)", parse_mode="Markdown")
+        await query.edit_message_text(f"Patente selecionada: *{medalhao}*\n\nPor favor, digite o **nome** que será atribuído a este usuário (Ex: `Gerente 2`).\nO sufixo `({medalhao} Access)` será adicionado automaticamente.\n\n(Ou digite `Cancelar`)", parse_mode="Markdown")
 
     elif data.startswith("solicitar_auth_"):
         acao_id = data.replace("solicitar_auth_", "")

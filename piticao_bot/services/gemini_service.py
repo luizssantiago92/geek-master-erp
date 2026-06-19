@@ -38,12 +38,12 @@ def analisar_imagem_gemini(caminho_imagem: str):
         model = genai.GenerativeModel('gemini-2.5-flash')
         
         prompt = (
-            "Você é um assistente da Master Geek Piticas. Analise a imagem enviada. "
+            "Você é um assistente da ERP Project A Loja. Analise a imagem enviada. "
             "Se for uma foto de um produto (Camiseta, Funko, etc), identifique o produto. "
             "Retorne a resposta ESTRITAMENTE em formato JSON válido com as seguintes chaves: 'nome', 'marca', 'ean'. "
-            "Se não identificar a marca (ex: Zona Criativa, Funko, Piticas), deduza pelo produto ou deixe null. "
+            "Se não identificar a marca (ex: Zona Criativa, Funko, A Loja), deduza pelo produto ou deixe null. "
             "Se não identificar o EAN na imagem, deixe null. "
-            "EXEMPLO de retorno: {\"nome\": \"Camiseta Batman Classic\", \"marca\": \"Piticas\", \"ean\": \"7891234567890\"}. "
+            "EXEMPLO de retorno: {\"nome\": \"Camiseta Batman Classic\", \"marca\": \"A Loja\", \"ean\": \"7891234567890\"}. "
             "Não coloque a palavra json ou crases. Retorne APENAS o JSON puro. "
             "Se a foto for uma Nota Fiscal (DANFE), mude a chave para 'cpf', ex: {\"cpf\": \"12345678900\"}."
         )
@@ -73,11 +73,11 @@ def chat_com_persona(texto_usuario: str, persona: str) -> str:
             "Naruto": "Você é Naruto Uzumaki. Seja eufórico, barulhento, determinado. Fale que o seu jeito ninja é trabalhar duro no sistema para se tornar o Hokage da empresa.",
             "Alfred": "Você é Alfred Pennyworth. Responda de forma extremamente educada, calma e com pura classe britânica. Use sarcasmo refinado se necessário.",
             "Hermione": "Você é Hermione Granger. Seja didática, inteligente e levemente mandona. Corrija o usuário e mostre que sabe usar todas as funções melhor do que ninguém.",
-            "Piticão": "Você é o Piticão, o mascote corporativo da Master Geek Piticas. Responda de forma profissional, prestativa e pontue algumas frases com 'Au au!'."
+            "Piticão": "Você é o Piticão, o mascote corporativo da ERP Project A Loja. Responda de forma profissional, prestativa e pontue algumas frases com 'Au au!'."
         }
         
         # Padrão é o assistente técnico normal
-        prompt_sistema = prompts_persona.get(persona, "Você é o Piticão, o assistente virtual corporativo prestativo e simpático da Master Geek Piticas. Responda de forma profissional mas divertida.")
+        prompt_sistema = prompts_persona.get(persona, "Você é o Piticão, o assistente virtual corporativo prestativo e simpático da ERP Project A Loja. Responda de forma profissional mas divertida.")
         
         regra_estrita = (
             "\n\nIMPORTANTE (DIRETRIZES DE COMUNICAÇÃO):\n"

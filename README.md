@@ -1,6 +1,6 @@
-# Master Geek & Piticas Rio - O2O Automation Platform
+# ERP Project & A Loja Rio - O2O Automation Platform
 
-O **Master Geek** é um sistema completo de gestão de varejo e relacionamento com o cliente (CRM) desenhado para o ecossistema Online-to-Offline (O2O). Desenvolvido inicialmente como um projeto de extensão universitária em Banco de Dados, ele resolve gargalos reais de operação em balcões de franquias físicas.
+O **ERP Project** é um sistema completo de gestão de varejo e relacionamento com o cliente (CRM) desenhado para o ecossistema Online-to-Offline (O2O). Desenvolvido inicialmente como um projeto de extensão universitária em Banco de Dados, ele resolve gargalos reais de operação em balcões de franquias físicas.
 
 O foco da arquitetura é reduzir o atrito em vendas híbridas, automatizar processos manuais de relatórios e conectar o controle de estoque ao tráfego de clientes em tempo real através de agentes e visão computacional (IA).
 
@@ -79,4 +79,4 @@ Acesse `http://localhost:3000` no seu navegador.
 ## 🤝 Contribuição
 Siga as diretrizes de branch (`feature/nome-da-funcionalidade`) e utilize commits semânticos. Evite o commit direto na branch `main`.
 
-Desenvolvido para Master Geek / Piticas.
+Desenvolvido para ERP Project / A Loja.

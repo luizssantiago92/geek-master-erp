@@ -1,4 +1,4 @@
-# Master Geek - Product Requirements Document (PRD)
+# ERP Project - Product Requirements Document (PRD)
 
 ## 1. Visão Geral
 Sistema de gestão O2O, automação de relatórios e CRM para quiosque de varejo físico. O foco é capturar dados do cliente através de um Catálogo Web Dinâmico e finalizar o ciclo de venda no ambiente físico, monitorado pelo bot "Piticão" no Telegram.
@@ -6,7 +6,7 @@ Sistema de gestão O2O, automação de relatórios e CRM para quiosque de varejo
 ## 2. Níveis de Acesso (RBAC)
 - **Nível 1 (Quiosque):** Vendedores. Permissão para ler QR Code de notas fiscais, registrar saída de estoque via foto e consultar produtos.
 - **Nível 2 (Marketing):** Disparo de cupons e gestão da comunidade do WhatsApp.
-- **Nível 3 (Chefia):** Gysele, Bruno, Natan. Acesso a aprovação de pedidos e dashboards executivos.
+- **Nível 3 (Chefia):** Gerente 1, Gerente 2, Gerente 3. Acesso a aprovação de pedidos e dashboards executivos.
 - **Nível 4 (ADM):** Luiz / Equipe. Manutenção, logs e gestão de usuários.
 
 ## 3. Fluxo de Catálogo e Encomendas (O MVP)
@@ -16,4 +16,4 @@ Sistema de gestão O2O, automação de relatórios e CRM para quiosque de varejo
 - **Lista de Desejos e Cupons:** Clientes podem favoritar itens; cupons exclusivos são gerados apenas para membros da comunidade VIP.
 
 ## 4. Atualização de Estoque (Assíncrona)
-Vendedor tira foto do produto + EAN no balcão. O sistema registra localmente e um job em background raspa dados oficiais (Zona Criativa, Piticas, Funko) para atualizar o catálogo web sem travar o atendimento.
+Vendedor tira foto do produto + EAN no balcão. O sistema registra localmente e um job em background raspa dados oficiais (Zona Criativa, A Loja, Funko) para atualizar o catálogo web sem travar o atendimento.

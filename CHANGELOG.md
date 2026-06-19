@@ -1,4 +1,4 @@
-# Histórico de Atualizações (Changelog) - Master Geek
+# Histórico de Atualizações (Changelog) - ERP Project
 
 Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 

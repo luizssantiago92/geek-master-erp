@@ -55,7 +55,7 @@ async def main():
             keyboard = [[InlineKeyboardButton("🔍 Saber Mais (O que mudou?)", callback_data="saber_mais_att")]]
             reply_markup = InlineKeyboardMarkup(keyboard)
         else:
-            mensagem = f"Olá {nome}! 🐶\n\n🔄 *Atualização do Sistema:*\nO Master Geek acabou de ser atualizado com melhorias técnicas de estabilidade e performance. Nenhuma função mudou de lugar!"
+            mensagem = f"Olá {nome}! 🐶\n\n🔄 *Atualização do Sistema:*\nO ERP Project acabou de ser atualizado com melhorias técnicas de estabilidade e performance. Nenhuma função mudou de lugar!"
             reply_markup = None
             
         try:
