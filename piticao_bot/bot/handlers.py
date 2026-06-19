@@ -100,7 +100,64 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # STEALTH MODE: Zero-Trust Absoluto
     if not funcionario:
-        return
+        codigo = None
+        # Se for texto, pode ser o deep link do QR Code ou código digitado manualmente
+        if text:
+            texto_limpo = text.strip()
+            if texto_limpo.startswith("/start "):
+                codigo = texto_limpo.replace("/start ", "").strip().upper()
+            elif texto_limpo.startswith("/menu") or texto_limpo == "/start":
+                await update.message.reply_text("👋 Olá! Eu sou o Piticão.\n\nPara acessar o sistema corporativo, você precisa de um **Código de Acesso** (Ex: PTC-XXXX). Peça ao seu gestor e envie o código aqui, ou aponte a câmera do celular para o QR Code gerado pelo administrador.")
+                return
+            else:
+                codigo = texto_limpo.upper()
+                
+        # Se enviou foto (tentando enviar a imagem do QR Code em vez de usar a câmera do celular nativa)
+        elif update.message.photo:
+            await update.message.reply_text("📸 Analisando o QR Code enviado...")
+            try:
+                import cv2
+                import tempfile
+                photo_file = await update.message.photo[-1].get_file()
+                with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as temp_img:
+                    caminho_temporario = temp_img.name
+                await photo_file.download_to_drive(caminho_temporario)
+                
+                # Lê o QR Code usando OpenCV
+                img = cv2.imread(caminho_temporario)
+                detector = cv2.QRCodeDetector()
+                data, bbox, _ = detector.detectAndDecode(img)
+                os.remove(caminho_temporario)
+                
+                if data:
+                    # Pode ser um link do tipo t.me/bot?start=PTC-XXXX
+                    if "start=" in data:
+                        codigo = data.split("start=")[-1].strip().upper()
+                    else:
+                        codigo = data.strip().upper()
+                else:
+                    await update.message.reply_text("❌ Não consegui ler nenhum QR Code nesta imagem.")
+                    return
+            except Exception as e:
+                await update.message.reply_text(f"❌ Erro ao ler a imagem: {e}")
+                return
+
+        if codigo and (codigo.startswith("PTC-") or codigo.startswith("TST-")):
+            from services.supabase_service import validar_e_usar_codigo
+            if codigo.startswith("TST-"):
+                # Código TST é só para simulação (se o cara já for admin), mas se ele não for nada, não deve usar TST, mas vamos validar se quiser
+                pass 
+
+            sucesso, msg_retorno = validar_e_usar_codigo(telegram_id, update.message.from_user.first_name, codigo)
+            await update.message.reply_text(msg_retorno, parse_mode="Markdown")
+            if sucesso:
+                from services.supabase_service import get_funcionario_by_telegram_id
+                funcionario = get_funcionario_by_telegram_id(telegram_id)
+            else:
+                return
+        else:
+            # Se não é um código válido, ignora (stealth mode)
+            return
         
     nivel_real = funcionario['nivel_acesso']
     nivel_efetivo = impersonation_states.get(telegram_id, nivel_real)
@@ -210,19 +267,44 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"✅ Transmissão enviada com sucesso para {sucessos} usuário(s).")
         return
 
-    if estado_atual == "esperando_id_revogar":
+    if estado_atual in ["esperando_nome_revogar", "esperando_nome_suspender"]:
         if text.lower() == "cancelar":
             user_states.pop(telegram_id, None)
-            await update.message.reply_text("Revogação cancelada.")
+            await update.message.reply_text("Ação cancelada.")
             return
             
-        from services.supabase_service import deletar_funcionario
-        sucesso = deletar_funcionario(text)
+        from services.supabase_service import supabase
+        resp = supabase.table("funcionarios").select("id, nome, ativo").ilike("nome", f"%{text}%").execute()
+        
+        if not resp.data:
+            await update.message.reply_text("Nenhum usuário encontrado com esse nome. Tente novamente ou digite Cancelar.")
+            return
+            
+        acao = "revogar" if estado_atual == "esperando_nome_revogar" else "suspender"
+        
+        if len(resp.data) > 1:
+            keyboard = []
+            for f in resp.data:
+                keyboard.append([InlineKeyboardButton(f"{f['nome']}", callback_data=f"{acao}_escolher_{f['id']}")])
+            await update.message.reply_text("Foram encontrados mais de um usuário. Selecione o correto:", reply_markup=InlineKeyboardMarkup(keyboard))
+            return
+            
+        f = resp.data[0]
         user_states.pop(telegram_id, None)
-        if sucesso:
-            await update.message.reply_text(f"✅ Usuário com ID `{text}` foi revogado permanentemente. Ele não tem mais acesso ao sistema.", parse_mode="Markdown")
+        
+        if acao == "revogar":
+            keyboard = [
+                [InlineKeyboardButton("✅ Sim, Revogar", callback_data=f"revogar_confirma_{f['id']}")],
+                [InlineKeyboardButton("❌ Não, Cancelar", callback_data="revogar_cancela")]
+            ]
+            await update.message.reply_text(f"Tem certeza que deseja revogar **PERMANENTEMENTE** o acesso do usuário **{f['nome']}**?", parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
         else:
-            await update.message.reply_text("❌ Ocorreu um erro ou esse ID não existe.")
+            status_atual = "✅ Ativo" if f['ativo'] else "⏸️ Suspenso"
+            keyboard = [
+                [InlineKeyboardButton("✅ Ativar", callback_data=f"suspender_ativar_{f['id']}")],
+                [InlineKeyboardButton("⏸️ Desativar", callback_data=f"suspender_desativar_{f['id']}")]
+            ]
+            await update.message.reply_text(f"Usuário: **{f['nome']}**\nStatus atual: {status_atual}\n\nO que você deseja fazer?", parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
     if estado_atual and estado_atual.startswith("esperando_nome_codigo_"):
@@ -247,60 +329,39 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_states.pop(telegram_id, None)
         
         if codigo:
-            # Prepara a mensagem de compartilhamento para o WhatsApp
-            import urllib.parse
-            mensagem_whatsapp = (
-                f"Olá! Este é o seu código de acesso exclusivo para o bot Piticão.\n\n"
-                f"Cargo: {NIVEIS.get(nivel_para_gerar)}\n"
-                f"Código: {codigo}\n\n"
-                f"Abra o Telegram, procure pelo nosso bot e envie este código para validar seu acesso.\n\n"
-                f"⚠️ *ATENÇÃO:* Este código expira em 30 minutos! Caso ele expire, você terá que solicitar um novo código."
-            )
-            texto_url = urllib.parse.quote(mensagem_whatsapp)
-            link_whatsapp = f"https://api.whatsapp.com/send?text={texto_url}"
+            import qrcode
+            from io import BytesIO
             
-            # Adiciona o botão de compartilhar
-            keyboard_share = [[InlineKeyboardButton("📲 Compartilhar via WhatsApp", url=link_whatsapp)]]
-            reply_markup_share = InlineKeyboardMarkup(keyboard_share)
-
-            await update.message.reply_text(
+            # Tenta pegar o username do bot
+            bot_username = context.bot.username
+            deep_link = f"https://t.me/{bot_username}?start={codigo}"
+            
+            # Gera a imagem do QR Code
+            qr = qrcode.QRCode(version=1, box_size=10, border=4)
+            qr.add_data(deep_link)
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            
+            bio = BytesIO()
+            bio.name = "codigo_acesso.png"
+            img.save(bio, "PNG")
+            bio.seek(0)
+            
+            mensagem = (
                 f"🎟️ *Código de Acesso Gerado com Sucesso!*\n\n"
                 f"Cargo: *{NIVEIS.get(nivel_para_gerar)}*\n"
                 f"Nome Vinculado: *{nome_customizado}*\n\n"
-                f"💡 _Dica: Você pode copiar o código da mensagem abaixo ou usar o botão para enviar direto pro WhatsApp._",
-                parse_mode="Markdown",
-                reply_markup=reply_markup_share
+                f"💡 _Mande o usuário apontar a câmera do celular para este QR Code, ou envie a imagem para ele!_\\n"
+                f"*(Alternativa: envie o link ou código abaixo)*\\n"
+                f"Link direto: {deep_link}"
             )
-            # Envia o código em uma mensagem isolada para facilitar a cópia
+            await context.bot.send_photo(chat_id=telegram_id, photo=bio, caption=mensagem, parse_mode="Markdown")
             await update.message.reply_text(f"`{codigo}`", parse_mode="Markdown")
         else:
             await update.message.reply_text("❌ Erro ao gerar o código no banco de dados.")
         return
 
-    if estado_atual == "esperando_id_suspender":
-        if text.lower() == "cancelar":
-            user_states.pop(telegram_id, None)
-            await update.message.reply_text("Ação cancelada.")
-            return
-            
-        partes = text.split()
-        if len(partes) != 2 or partes[1].upper() not in ["A", "D"]:
-            await update.message.reply_text("Formato inválido. Digite o ID seguido de A ou D.\nExemplo: `123 A` (para Ativar) ou `123 D` (para Desativar).\n(Ou digite Cancelar)", parse_mode="Markdown")
-            return
-            
-        id_alvo = partes[0]
-        novo_status = partes[1].upper() == "A"
-        
-        from services.supabase_service import alterar_status_funcionario
-        sucesso = alterar_status_funcionario(id_alvo, novo_status)
-        
-        if sucesso:
-            acao = "ATIVADO ✅" if novo_status else "SUSPENSO ⏸️"
-            await update.message.reply_text(f"Usuário com ID `{id_alvo}` foi *{acao}* com sucesso.", parse_mode="Markdown")
-            user_states.pop(telegram_id, None)
-        else:
-            await update.message.reply_text("❌ Erro ao alterar o status. Verifique se o ID existe e tente novamente.")
-        return
+
 
     # Comando Inicial ou Menu (Boas vindas e exibição do Teclado)
     if text.startswith("/start") or text.startswith("/menu"):
@@ -516,14 +577,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     elif text == "🚫 Revogar Acesso":
         if funcionario['nivel_acesso'] < 4: return
-        user_states[telegram_id] = "esperando_id_revogar"
-        await update.message.reply_text("Digite o *ID* do usuário que você deseja remover PERMANENTEMENTE do sistema.\n\n(Ou digite `Cancelar` para desistir).", parse_mode="Markdown")
+        user_states[telegram_id] = "esperando_nome_revogar"
+        await update.message.reply_text("Digite o **NOME EXATO** (ou parte do nome) do usuário que você deseja remover PERMANENTEMENTE do sistema.\n\n(Ou digite `Cancelar` para desistir).", parse_mode="Markdown")
         return
         
     elif text == "⏸️ Suspender/Ativar":
         if funcionario['nivel_acesso'] < 4: return
-        user_states[telegram_id] = "esperando_id_suspender"
-        await update.message.reply_text("Digite o *ID* do usuário seguido da letra *A* (Ativar) ou *D* (Desativar).\n\nExemplo: `14 D` (para suspender o acesso do usuário 14)\n\n(Ou digite `Cancelar` para desistir).", parse_mode="Markdown")
+        user_states[telegram_id] = "esperando_nome_suspender"
+        await update.message.reply_text("Digite o **NOME EXATO** (ou parte do nome) do usuário que você deseja suspender ou ativar.\n\n(Ou digite `Cancelar` para desistir).", parse_mode="Markdown")
         return
         
     elif text == "📊 Resumo do Sistema":
@@ -556,6 +617,61 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
         
     data = query.data
+
+    if data.startswith("revogar_escolher_"):
+        f_id = data.replace("revogar_escolher_", "")
+        from services.supabase_service import supabase
+        f = supabase.table("funcionarios").select("nome").eq("id", f_id).execute().data[0]
+        keyboard = [
+            [InlineKeyboardButton("✅ Sim, Revogar", callback_data=f"revogar_confirma_{f_id}")],
+            [InlineKeyboardButton("❌ Não, Cancelar", callback_data="revogar_cancela")]
+        ]
+        await query.edit_message_text(f"Tem certeza que deseja revogar **PERMANENTEMENTE** o acesso do usuário **{f['nome']}**?", parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+        
+    if data.startswith("suspender_escolher_"):
+        f_id = data.replace("suspender_escolher_", "")
+        from services.supabase_service import supabase
+        f = supabase.table("funcionarios").select("nome, ativo").eq("id", f_id).execute().data[0]
+        status_atual = "✅ Ativo" if f['ativo'] else "⏸️ Suspenso"
+        keyboard = [
+            [InlineKeyboardButton("✅ Ativar", callback_data=f"suspender_ativar_{f_id}")],
+            [InlineKeyboardButton("⏸️ Desativar", callback_data=f"suspender_desativar_{f_id}")]
+        ]
+        await query.edit_message_text(f"Usuário: **{f['nome']}**\nStatus atual: {status_atual}\n\nO que você deseja fazer?", parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+    if data.startswith("revogar_confirma_"):
+        f_id = data.replace("revogar_confirma_", "")
+        from services.supabase_service import deletar_funcionario
+        if deletar_funcionario(f_id):
+            await query.edit_message_text("✅ Usuário revogado permanentemente com sucesso.")
+        else:
+            await query.edit_message_text("❌ Erro ao revogar usuário.")
+        return
+        
+    if data == "revogar_cancela":
+        await query.edit_message_text("Ação cancelada.")
+        return
+        
+    if data.startswith("suspender_ativar_"):
+        f_id = data.replace("suspender_ativar_", "")
+        from services.supabase_service import alterar_status_funcionario
+        if alterar_status_funcionario(f_id, True):
+            await query.edit_message_text("✅ Usuário ativado com sucesso.")
+        else:
+            await query.edit_message_text("❌ Erro ao ativar usuário.")
+        return
+        
+    if data.startswith("suspender_desativar_"):
+        f_id = data.replace("suspender_desativar_", "")
+        from services.supabase_service import alterar_status_funcionario
+        if alterar_status_funcionario(f_id, False):
+            await query.edit_message_text("⏸️ Usuário desativado com sucesso.")
+        else:
+            await query.edit_message_text("❌ Erro ao desativar usuário.")
+        return
+
     
     if data.startswith("gerar_"):
         if data == "gerar_teste_menu":
@@ -576,7 +692,25 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             codigo = gerar_novo_codigo(funcionario['id'], nivel, nome_atribuido=nome_customizado, is_tester=True)
             
             if codigo:
-                await query.edit_message_text(f"✅ Código TST- gerado para {nome_nivel}:\n\n`{codigo}`\n\nVá no Modo Testador e insira este código.", parse_mode="Markdown")
+                import qrcode
+                from io import BytesIO
+                bot_username = context.bot.username
+                deep_link = f"https://t.me/{bot_username}?start={codigo}"
+                
+                qr = qrcode.QRCode(version=1, box_size=10, border=4)
+                qr.add_data(deep_link)
+                qr.make(fit=True)
+                img = qr.make_image(fill_color="black", back_color="white")
+                
+                bio = BytesIO()
+                bio.name = "teste_acesso.png"
+                img.save(bio, "PNG")
+                bio.seek(0)
+                
+                msg = f"✅ Código TST- gerado para {nome_nivel}.\nEscaneie este QR Code ou envie a imagem para o bot, ou digite o código manualmente no Modo Testador.\nLink direto: {deep_link}"
+                await context.bot.send_photo(chat_id=telegram_id, photo=bio, caption=msg, parse_mode="Markdown")
+                await context.bot.send_message(chat_id=telegram_id, text=f"`{codigo}`", parse_mode="Markdown")
+                await query.delete_message()
             else:
                 await query.edit_message_text("❌ Erro ao gerar o código de teste.")
             return
