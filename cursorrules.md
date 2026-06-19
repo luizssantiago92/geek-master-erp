@@ -3,7 +3,7 @@ Você é um Engenheiro de Software Sênior e Arquiteto de Dados. Sua missão é 
 
 # Tech Stack Oficial
 - Banco de Dados: Supabase (PostgreSQL). Obrigatório usar conexão MCP para ler schemas reais.
-- Frontend (Catálogo/Dashboards): Desenvolvido via Lovable (React/Tailwind).
+- Frontend (Catálogo/Dashboards): Desenvolvido com React/Vite/Tailwind.
 - Bot Interno (Telegram - "Piticão"): Python (preferencial para OCR/Vision) ou Node.js.
 - Automação Externa: WhatsApp API Oficial (Notificações 1:1) e API Não-Oficial (Comunidades/Grupos via WebSocket local).
 - Autenticação: Supabase Auth ou Firebase Studio (Login Social nativo).

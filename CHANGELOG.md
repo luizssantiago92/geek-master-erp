@@ -9,7 +9,7 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 - Inicialização do servidor Python com `python-telegram-bot`.
 - Integração completa com o **Supabase** (BaaS) com RLS e autenticação via JWT.
 - Criação das tabelas `funcionarios`, `codigos_acesso` e `autorizacoes`.
-- Integração com a API do **Google Gemini 1.5 Flash** para OCR de notas fiscais e conversas com personas (Lovable, Padrão, Sarcástica, etc).
+- Integração com a API do **Google Gemini 1.5 Flash** para OCR de notas fiscais e conversas com personas (Carinhosa, Padrão, Sarcástica, etc).
 - Implementação de arquitetura de Zero-Trust (Usuários desconhecidos são ignorados).
 - Implementação do sistema de **Medalhões** (Gold e Silver) para aprovações em duas etapas.
 - Implementação do "Simulador de Testes" em memória (`impersonation_states`) para o Administrador.

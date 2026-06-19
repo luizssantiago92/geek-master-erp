@@ -532,7 +532,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # --- Menu Nível 3 (Chefia) ---
     elif text == "📊 Dashboards de Resultados":
-        await update.message.reply_text("Aqui geraremos links de acesso rápido aos Dashboards executivos do seu Lovable.")
+        await update.message.reply_text("Aqui geraremos links de acesso rápido aos Dashboards executivos do seu painel Web.")
         return
     elif text == "🔐 Aprovações Pendentes":
         await update.message.reply_text("Nenhuma requisição de cancelamento ou desconto pendente no balcão no momento.")
@@ -594,7 +594,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "📊 Resumo do Sistema":
         from services.supabase_service import get_todos_funcionarios
         todos = get_todos_funcionarios()
-        await update.message.reply_text(f"📊 *Status Atual do Piticão:*\n\n- Bot Operacional: Sim\n- Usuários Logados: {len(todos)}\n- Integração Gemini 1.5: Online\n\n(Dashboards Lovable em breve)", parse_mode="Markdown")
+        await update.message.reply_text(f"📊 *Status Atual do Piticão:*\n\n- Bot Operacional: Sim\n- Usuários Logados: {len(todos)}\n- Integração Gemini 1.5: Online\n\n(Painel Web em breve)", parse_mode="Markdown")
         return
 
     # Eco padrão para outras mensagens soltas de usuários registrados
