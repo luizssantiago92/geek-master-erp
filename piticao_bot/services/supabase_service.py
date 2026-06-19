@@ -28,17 +28,18 @@ def get_funcionario_by_telegram_id(telegram_id: str):
         print(f"Erro ao buscar funcionário: {e}")
         return None
 
-def validar_e_usar_codigo(telegram_id: str, codigo: str, full_name: str):
+def validar_e_usar_codigo(telegram_id: str, telegram_name: str, codigo: str):
     """
     Verifica se o código é válido. Se for, registra o funcionário, 
-    marca o código como usado e retorna o nível de acesso.
-    Retorna None se o código for inválido.
+    marca o código como usado e retorna (True, mensagem).
+    Retorna (False, mensagem_erro) se o código for inválido.
     """
     try:
         # 1. Buscar o código no banco
         response = supabase.table("codigos_acesso").select("*").eq("codigo", codigo).eq("usado", False).execute()
+        
         if not response.data:
-            return None
+            return False, "❌ Código inválido, já utilizado ou não existe."
         
         codigo_db = response.data[0]
         
@@ -47,7 +48,7 @@ def validar_e_usar_codigo(telegram_id: str, codigo: str, full_name: str):
         expira_em = datetime.fromisoformat(expira_em_str.replace("Z", "+00:00"))
         
         if datetime.now(expira_em.tzinfo) > expira_em:
-            return None # Código expirado
+            return False, "❌ Este código de acesso expirou. Solicite um novo ao seu gestor."
             
         nivel = codigo_db["nivel_acesso"]
         
@@ -73,10 +74,10 @@ def validar_e_usar_codigo(telegram_id: str, codigo: str, full_name: str):
         # 4. Marcar o código como usado
         supabase.table("codigos_acesso").update({"usado": True}).eq("id", codigo_db["id"]).execute()
         
-        return nivel
+        return True, f"✅ Cadastro realizado com sucesso!\nVocê foi registrado como: **{nome_final}**\nCargo: **{cargo}**"
     except Exception as e:
         print(f"Erro ao usar código de acesso: {e}")
-        return None
+        return False, "❌ Erro interno ao validar o código."
 
 def validar_codigo_teste(codigo: str):
     """Valida um código de teste sem registrar o funcionário no banco. Apenas consome o código e retorna o nível."""

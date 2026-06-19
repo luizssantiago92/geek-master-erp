@@ -153,6 +153,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if sucesso:
                 from services.supabase_service import get_funcionario_by_telegram_id
                 funcionario = get_funcionario_by_telegram_id(telegram_id)
+                nome_exibicao = NIVEIS.get(funcionario['nivel_acesso'])
+                await update.message.reply_text(f"Olá {funcionario['nome']}! Sou o Piticão 🐶.\\nSua área de trabalho ({nome_exibicao}) já está carregada no teclado abaixo.", reply_markup=get_menu_por_nivel(funcionario['nivel_acesso'], False), parse_mode="Markdown")
+                return
             else:
                 return
         else:
@@ -352,6 +355,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"Cargo: *{NIVEIS.get(nivel_para_gerar)}*\n"
                 f"Nome Vinculado: *{nome_customizado}*\n\n"
                 f"💡 _Mande o usuário apontar a câmera do celular para este QR Code, ou envie a imagem para ele!_\\n"
+                f"⚠️ *ATENÇÃO: Este código expira em 30 minutos!*\\n\\n"
                 f"*(Alternativa: envie o link ou código abaixo)*\\n"
                 f"Link direto: {deep_link}"
             )
@@ -707,7 +711,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 img.save(bio, "PNG")
                 bio.seek(0)
                 
-                msg = f"✅ Código TST- gerado para {nome_nivel}.\nEscaneie este QR Code ou envie a imagem para o bot, ou digite o código manualmente no Modo Testador.\nLink direto: {deep_link}"
+                msg = f"✅ Código TST- gerado para {nome_nivel}.\nEscaneie este QR Code ou envie a imagem para o bot, ou digite o código manualmente no Modo Testador.\n\n⚠️ *ATENÇÃO: Este código expira em 30 minutos!*\n\nLink direto: {deep_link}"
                 await context.bot.send_photo(chat_id=telegram_id, photo=bio, caption=msg, parse_mode="Markdown")
                 await context.bot.send_message(chat_id=telegram_id, text=f"`{codigo}`", parse_mode="Markdown")
                 await query.delete_message()
