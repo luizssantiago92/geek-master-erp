@@ -79,4 +79,17 @@ Acesse `http://localhost:3000` no seu navegador.
 ## 🤝 Contribuição
 Siga as diretrizes de branch (`feature/nome-da-funcionalidade`) e utilize commits semânticos. Evite o commit direto na branch `main`.
 
-Desenvolvido para ERP Project / A Loja.
+---
+
+## 🤖 Construído com Inteligência Artificial (Orquestração e Arquitetura)
+
+Este projeto tem a particularidade de ter sido **inteiramente construído de forma orquestrada com IA**, utilizando o **Google Gemini 1.5 Pro** integrado aos agentes do Antigravity IDE. 
+
+A minha contribuição central para este projeto foi atuar como **Arquiteto de Software e Product Manager**:
+- Desenhei a visão macro do ecossistema e defini as regras de negócios de cada etapa (como o fluxo da *Arquitetura Medalhão* e o *Onboarding Multiverso*).
+- Orquestrei a conexão entre as ferramentas essenciais: **Supabase** (para retaguarda e segurança), **GitHub** (para controle de versão) e **Telegram/Next.js** (para front-end e interação).
+- Forneci os contextos, PRDs, prompts estruturados e guiei o agente Gemini Pro na execução técnica e na implementação dos códigos.
+
+O uso coordenado dessas ferramentas reflete uma abordagem moderna de desenvolvimento de software colaborativo (Humano + IA), onde a direção estratégica e a arquitetura ditam o ritmo da automação.
+
+Desenvolvido para ERP Project / Piticas Rio.

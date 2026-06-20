@@ -444,3 +444,66 @@ def validar_codigo_teste(codigo: str):
     except Exception as e:
         print(f"Erro ao validar código teste: {e}")
         return None
+
+# ==============================================================================
+# ESTOQUE TESTE
+# ==============================================================================
+
+def upload_imagem_produto(file_bytes: bytes, file_name: str) -> str:
+    """Faz upload da imagem para o Supabase Storage e retorna a URL pública."""
+    try:
+        # Nome único para evitar cache/conflitos
+        ext = file_name.split('.')[-1]
+        unique_name = f"{uuid.uuid4().hex}.{ext}"
+        
+        res = supabase.storage.from_("produtos").upload(unique_name, file_bytes, {"content-type": f"image/{ext}"})
+        if res:
+            # Retornar a URL pública
+            return f"{URL}/storage/v1/object/public/produtos/{unique_name}"
+        return None
+    except Exception as e:
+        print(f"Erro no upload da imagem: {e}")
+        return None
+
+def adicionar_produto_teste(nome: str, franquia: str, preco: float, url_imagem: str = None):
+    """Insere um produto de teste na tabela produtos."""
+    try:
+        # Garante que tem a tag [TESTE] no nome
+        if "[TESTE]" not in nome:
+            nome = f"[TESTE] {nome}"
+            
+        ean_mock = f"TESTE{random.randint(10000000, 99999999)}"
+        
+        data = {
+            "ean": ean_mock,
+            "nome": nome,
+            "franquia": franquia,
+            "preco_base": preco,
+            "imagem_url": url_imagem
+        }
+        response = supabase.table("produtos").insert(data).execute()
+        if response.data:
+            return response.data[0]
+        return None
+    except Exception as e:
+        print(f"Erro ao inserir produto teste: {e}")
+        return None
+
+def listar_produtos_teste():
+    """Retorna apenas os produtos criados para teste."""
+    try:
+        response = supabase.table("produtos").select("*").like("nome", "%[TESTE]%").order("criado_em", desc=True).execute()
+        return response.data
+    except Exception as e:
+        print(f"Erro ao listar produtos teste: {e}")
+        return []
+
+def excluir_produto_teste(produto_id: str):
+    """Exclui um produto do banco pelo ID."""
+    try:
+        response = supabase.table("produtos").delete().eq("id", produto_id).execute()
+        return True
+    except Exception as e:
+        print(f"Erro ao excluir produto teste: {e}")
+        return False
+

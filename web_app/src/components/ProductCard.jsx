@@ -6,17 +6,23 @@ import { useCart } from '../contexts/CartContext';
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
 
+  // Lógica de Parcelamento
+  const parcelasPossiveis = Math.floor(product.price / 60);
+  const maxInstallments = Math.min(5, parcelasPossiveis);
+  const isBilledInInstallments = maxInstallments >= 2;
+  const installmentValue = isBilledInInstallments ? (product.price / maxInstallments).toFixed(2).replace('.', ',') : null;
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all group relative flex flex-col">
       {/* Badges */}
       <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
         {product.isNew && (
-          <span className="bg-primary text-light text-[10px] font-bold px-2 py-1 rounded">
+          <span className="bg-primary text-light text-[10px] font-bold px-2 py-1 rounded shadow-sm">
             NOVIDADE
           </span>
         )}
         {product.discount > 0 && (
-          <span className="bg-red-600 text-light text-[10px] font-bold px-2 py-1 rounded">
+          <span className="bg-green-600 text-light text-[10px] font-bold px-2 py-1 rounded shadow-sm">
             {product.discount}% OFF
           </span>
         )}
@@ -52,11 +58,17 @@ export default function ProductCard({ product }) {
               R$ {product.oldPrice.toFixed(2).replace('.', ',')}
             </div>
           )}
-          <div className="text-lg font-black text-dark">
-            R$ {product.price.toFixed(2).replace('.', ',')}
+          <div className="flex items-end gap-2">
+            <div className="text-lg font-black text-dark">
+              R$ {product.price.toFixed(2).replace('.', ',')}
+            </div>
           </div>
-          <div className="text-[10px] text-gray-500 mb-3">
-            até 4x de R$ {(product.price / 4).toFixed(2).replace('.', ',')} sem juros
+          <div className="text-[10px] text-green-700 font-semibold mb-3 h-4">
+            {isBilledInInstallments ? (
+              <span>até {maxInstallments}x de R$ {installmentValue} sem juros</span>
+            ) : (
+              <span>à vista</span>
+            )}
           </div>
 
           <button 

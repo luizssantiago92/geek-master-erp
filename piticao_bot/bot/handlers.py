@@ -72,10 +72,7 @@ def get_menu_por_nivel(nivel: int, is_testing: bool = False) -> ReplyKeyboardMar
         ]
     elif nivel == 4:
         keyboard = [
-            ["🎟️ Gerar Código", "👥 Listar Usuários"],
-            ["📢 Transmissão Global", "⏸️ Suspender/Ativar"],
-            ["🚫 Revogar Acesso", "📊 Resumo do Sistema"],
-            ["🎭 Escolher Persona", "📊 Ranking Personas"],
+            ["🛠️ Sistema", "🎭 Personas"],
             ["🧪 Modo Testador"]
         ]
     else:
@@ -151,7 +148,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             sucesso, msg_retorno = validar_e_usar_codigo(telegram_id, update.message.from_user.first_name, codigo)
             await update.message.reply_text(msg_retorno, parse_mode="Markdown")
             if sucesso:
-                from services.supabase_service import get_funcionario_by_telegram_id
                 funcionario = get_funcionario_by_telegram_id(telegram_id)
                 nome_exibicao = NIVEIS.get(funcionario['nivel_acesso'])
                 await update.message.reply_text(f"Olá {funcionario['nome']}! Sou o Piticão 🐶.\\nSua área de trabalho ({nome_exibicao}) já está carregada no teclado abaixo.", reply_markup=get_menu_por_nivel(funcionario['nivel_acesso'], False), parse_mode="Markdown")
@@ -204,7 +200,40 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("🧪 Teste encerrado. Bem-vindo de volta à conta de Administrador principal.", reply_markup=get_menu_por_nivel(nivel_real, False))
         return
         
-    if text == "🧪 Modo Testador" and nivel_real == 4:
+    if text == "🔙 Voltar ao Menu":
+        await update.message.reply_text(
+            "Retornando ao menu principal.",
+            reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing)
+        )
+        return
+
+    if text == "🛠️ Sistema" and nivel_efetivo == 4:
+        keyboard = ReplyKeyboardMarkup([
+            ["🎟️ Gerar Código", "👥 Listar Usuários"],
+            ["📢 Transmissão Global", "⏸️ Suspender/Ativar"],
+            ["🚫 Revogar Acesso", "📊 Resumo do Sistema"],
+            ["🔙 Voltar ao Menu"]
+        ], resize_keyboard=True)
+        await update.message.reply_text("Você acessou o menu de **Sistema**.", reply_markup=keyboard, parse_mode='Markdown')
+        return
+
+    if text == "🎭 Personas" and nivel_efetivo == 4:
+        keyboard = ReplyKeyboardMarkup([
+            ["🎭 Escolher Persona", "📊 Ranking Personas"],
+            ["🔙 Voltar ao Menu"]
+        ], resize_keyboard=True)
+        await update.message.reply_text("Você acessou o menu de **Personas**.", reply_markup=keyboard, parse_mode='Markdown')
+        return
+
+    if text == "🧪 Modo Testador" and nivel_efetivo == 4:
+        keyboard = ReplyKeyboardMarkup([
+            ["📦 Estoque Teste", "🧪 Testar Usuários"],
+            ["🔙 Voltar ao Menu"]
+        ], resize_keyboard=True)
+        await update.message.reply_text("Você acessou o **Modo Testador**.", reply_markup=keyboard, parse_mode='Markdown')
+        return
+        
+    if text == "🧪 Testar Usuários" and nivel_real == 4:
         keyboard = [
             [InlineKeyboardButton("🔑 Inserir TST- (Simular Novo Acesso)", callback_data="teste_onboarding")]
         ]
@@ -213,7 +242,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for p in perfis:
             keyboard.append([InlineKeyboardButton(f"Perfil {NIVEIS.get(p)}", callback_data=f"teste_nivel_{p}")])
             
-        await update.message.reply_text("🧪 **Perfis Criados**", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        await update.message.reply_text("🧪 **Testar Usuários - Perfis Criados**", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
         return
     
     # ==============================================================
@@ -268,6 +297,127 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     pass
         user_states.pop(telegram_id, None)
         await update.message.reply_text(f"✅ Transmissão enviada com sucesso para {sucessos} usuário(s).")
+        return
+
+    # --- FLUXO ESTOQUE TESTE NOVO SCRAPING ---
+    if estado_atual == "teste_novo_scraping_tipo":
+        if text.lower() == "cancelar":
+            user_states.pop(telegram_id, None)
+            await update.message.reply_text("Cancelado.", reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing))
+            return
+        
+        user_states[telegram_id] = f"teste_novo_scraping_franquia|||{text}"
+        await update.message.reply_text("Qual é a *FRANQUIA* do produto?\n(Ex: Marvel, Disney, Toy Story)", parse_mode="Markdown", reply_markup=ReplyKeyboardRemove())
+        return
+
+    if estado_atual and estado_atual.startswith("teste_novo_scraping_franquia"):
+        if text.lower() == "cancelar":
+            user_states.pop(telegram_id, None)
+            await update.message.reply_text("Cancelado.", reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing))
+            return
+            
+        tipo = estado_atual.split("|||")[1]
+        franquia = text.strip()
+        user_states[telegram_id] = f"teste_novo_scraping_termo|||{tipo}|||{franquia}"
+        
+        if tipo.lower() == "funko":
+            await update.message.reply_text("🔎 Qual é o *NOME* ou *NÚMERO* do Funko Pop?\n(Ex: Jessie, Luffy, Supergirl, Batman 274)", parse_mode="Markdown")
+        else:
+            await update.message.reply_text("🔎 Qual é o *NOME* do produto para buscar?", parse_mode="Markdown")
+        return
+
+    if estado_atual and estado_atual.startswith("teste_novo_scraping_termo"):
+        if text.lower() == "cancelar":
+            user_states.pop(telegram_id, None)
+            await update.message.reply_text("Cancelado.", reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing))
+            return
+            
+        partes = estado_atual.split("|||")
+        tipo = partes[1]
+        franquia = partes[2]
+        termo = text.strip()
+        
+        await update.message.reply_text(f"🤖 Acessando site oficial para raspar dados de '{termo}'...")
+        
+        from services.scraping_service import scrape_funko_product
+        # Simula o scraper da funko
+        resultado_scraping = scrape_funko_product(termo)
+        
+        if not resultado_scraping:
+            await update.message.reply_text("⚠️ Não encontrei o produto na internet. Tente outro nome ou cancele.", reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing))
+            user_states.pop(telegram_id, None)
+            return
+            
+        import json
+        # Salva o resultado no estado para o próximo passo (precifica)
+        user_states[telegram_id] = f"teste_novo_scraping_preco|||{tipo}|||{franquia}|||{json.dumps(resultado_scraping)}"
+        
+        msg = f"✅ *Produto Encontrado!*\n\n"
+        msg += f"📦 *Nome:* {resultado_scraping['nome']}\n"
+        if resultado_scraping.get('is_new'):
+            msg += f"🔥 *TAG:* LANÇAMENTO / PRÉ-VENDA\n"
+        msg += f"💰 *Preço Oficial:* R$ {resultado_scraping['preco_base']:.2f}\n"
+        msg += f"📝 *Descrição:* {resultado_scraping['descricao']}\n\n"
+        
+        msg += "Qual será o nosso *PREÇO DE VENDA (R$)*?\n(Ex: 149.90)"
+        
+        if resultado_scraping.get('imagem_url'):
+            await update.message.reply_photo(photo=resultado_scraping['imagem_url'], caption=msg, parse_mode="Markdown")
+        else:
+            await update.message.reply_text(msg, parse_mode="Markdown")
+        return
+
+    if estado_atual and estado_atual.startswith("teste_novo_scraping_preco"):
+        if text.lower() == "cancelar":
+            user_states.pop(telegram_id, None)
+            await update.message.reply_text("Cancelado.", reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing))
+            return
+            
+        try:
+            preco_venda = float(text.replace(",", "."))
+        except ValueError:
+            await update.message.reply_text("❌ Preço inválido. Digite apenas números e ponto. (Ex: 149.90)")
+            return
+            
+        import json
+        partes = estado_atual.split("|||")
+        tipo = partes[1]
+        franquia = partes[2]
+        resultado_scraping = json.loads(partes[3])
+        
+        from services.supabase_service import salvar_produto
+        
+        # Insere no banco com prefixo [TESTE]
+        nome_final = f"[TESTE] {resultado_scraping['nome']}"
+        produto_db = {
+            "nome": nome_final,
+            "franquia": franquia,
+            "preco_base": preco_venda,
+            "imagem_url": resultado_scraping.get("imagem_url"),
+            "status_scraping": "CONCLUIDO"
+        }
+        
+        salvo = salvar_produto(produto_db)
+        user_states.pop(telegram_id, None)
+        
+        if salvo:
+            await update.message.reply_text(f"✅ *Produto Teste Cadastrado!*\n\nEle foi injetado no banco de dados e pronto para testes no Frontend.\n(Lembre-se: Ele não aparecerá para clientes finais).", parse_mode="Markdown", reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing))
+        else:
+            await update.message.reply_text("❌ Erro ao salvar o produto no banco.", reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing))
+        return
+        
+    if estado_atual == "teste_del_id":
+        if text.lower() == "cancelar":
+            user_states.pop(telegram_id, None)
+            await update.message.reply_text("Cancelado.")
+            return
+            
+        from services.supabase_service import excluir_produto_teste
+        if excluir_produto_teste(text.strip()):
+            await update.message.reply_text("✅ Produto excluído com sucesso.")
+        else:
+            await update.message.reply_text("❌ Erro ao excluir produto. Verifique o ID.")
+        user_states.pop(telegram_id, None)
         return
 
     if estado_atual in ["esperando_nome_revogar", "esperando_nome_suspender"]:
@@ -597,6 +747,42 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"📊 *Status Atual do Piticão:*\n\n- Bot Operacional: Sim\n- Usuários Logados: {len(todos)}\n- Integração Gemini 1.5: Online\n\n(Painel Web em breve)", parse_mode="Markdown")
         return
 
+    elif text == "📦 Estoque Teste":
+        if funcionario['nivel_acesso'] < 4: return
+        keyboard = [
+            ["➕ Cadastrar Produto de Teste"],
+            ["🧹 Limpar Produtos de Teste"],
+            ["🔙 Voltar ao Menu"]
+        ]
+        await update.message.reply_text("📦 *Gerenciamento de Estoque Teste*\n\nEscolha uma opção:", parse_mode="Markdown", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+        return
+        
+    elif text == "🔙 Voltar ao Menu":
+        user_states.pop(telegram_id, None)
+        await update.message.reply_text("Retornando ao menu principal...", reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing))
+        return
+
+    elif text == "➕ Cadastrar Produto de Teste":
+        if funcionario['nivel_acesso'] < 4: return
+        # Em breve usaremos a nova máquina de estados de Scraping aqui!
+        user_states[telegram_id] = "teste_novo_scraping_tipo"
+        keyboard = ReplyKeyboardMarkup([
+            ["Funko", "Caneca e Copo"],
+            ["Action Figure", "Vestuário", "Acessório"],
+            ["Cancelar"]
+        ], resize_keyboard=True)
+        await update.message.reply_text("📦 *Novo Cadastro Inteligente*\n\nQual é o tipo de produto que você deseja cadastrar?", parse_mode="Markdown", reply_markup=keyboard)
+        return
+        
+    elif text == "🧹 Limpar Produtos de Teste":
+        if funcionario['nivel_acesso'] < 4: return
+        from services.supabase_service import supabase
+        # Remove todos os produtos onde franquia = 'Teste' ou nome like '[TESTE]%'
+        resp = supabase.table("produtos").delete().ilike("nome", "[TESTE]%").execute()
+        
+        await update.message.reply_text("🧹 *Limpeza de Teste Concluída!*\n\nTodos os produtos de teste foram removidos permanentemente do banco de dados.", parse_mode="Markdown")
+        return
+
     # Eco padrão para outras mensagens soltas de usuários registrados
     if text:
         from services.gemini_service import chat_com_persona
@@ -913,6 +1099,33 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     msg_espera = await update.message.reply_text("Processando imagem...")
         
+    # --- FLUXO DE ADICIONAR PRODUTO TESTE VIA FOTO ---
+    if estado_atual and estado_atual.startswith("teste_add_foto"):
+        partes = estado_atual.split("|||")
+        nome = partes[1]
+        franquia = partes[2]
+        preco = float(partes[3])
+        
+        from services.supabase_service import upload_imagem_produto, adicionar_produto_teste
+        with open(caminho, "rb") as f:
+            bytes_img = f.read()
+            
+        url_publica = upload_imagem_produto(bytes_img, caminho)
+        
+        try:
+            os.remove(caminho)
+        except:
+            pass
+            
+        prod = adicionar_produto_teste(nome, franquia, preco, url_publica)
+        user_states.pop(telegram_id, None)
+        
+        if prod:
+            await msg_espera.edit_text(f"✅ *Produto Teste Adicionado com Imagem!*\nNome: {prod['nome']}\nID: `{prod['id']}`", parse_mode="Markdown")
+        else:
+            await msg_espera.edit_text("❌ Erro ao salvar o produto no banco.")
+        return
+
     resultado_json = analisar_imagem_gemini(caminho)
     
     try:

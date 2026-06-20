@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div>
             <div className="bg-primary text-light font-bold text-2xl p-2 rounded-lg inline-block mb-4">
-              Piticão
+              Piticas Rio
             </div>
             <p className="text-sm text-gray-500 leading-relaxed">
               O seu catálogo O2O definitivo. 
@@ -48,7 +48,7 @@ export default function Footer() {
 
         <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row items-center justify-between">
           <p className="text-xs text-gray-400">
-            © {new Date().getFullYear()} Piticão Geek Store - Apenas Catálogo para Retirada (Click & Collect)
+            © {new Date().getFullYear()} Piticas Rio - Apenas Catálogo para Retirada (Click & Collect)
           </p>
           <div className="flex gap-4 mt-4 md:mt-0 text-sm font-semibold text-gray-500">
             <span>Pagamento Exclusivo na Retirada</span>

@@ -1,10 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Search, ShoppingCart, Heart, User, Menu } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
+import { useUser } from '../contexts/UserContext';
 
 export default function Header() {
   const { totalItems, setIsCartOpen } = useCart();
+  const { user, logout } = useUser();
+  const navigate = useNavigate();
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    setIsUserMenuOpen(false);
+    navigate('/');
+  };
 
   return (
     <header className="bg-dark text-light sticky top-0 z-50 shadow-md">
@@ -13,9 +23,9 @@ export default function Header() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <div className="bg-primary text-light font-bold text-2xl p-2 rounded-lg">
-            Piticão
+            Piticas
           </div>
-          <span className="hidden md:block font-bold text-xl tracking-tight">Geek Store</span>
+          <span className="hidden md:block font-bold text-xl tracking-tight">Rio</span>
         </Link>
 
         {/* Search Bar */}
@@ -49,10 +59,61 @@ export default function Header() {
             </div>
             <span className="text-xs mt-1 hidden md:block">Reserva</span>
           </button>
-          <Link to="/login" className="flex flex-col items-center hover:text-primary transition-colors">
-            <User size={24} />
-            <span className="text-xs mt-1 hidden md:block">Entrar</span>
-          </Link>
+          
+          <div className="relative">
+            {user ? (
+              <div>
+                <button 
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex flex-col items-center hover:text-primary transition-colors focus:outline-none"
+                >
+                  {user.photoUrl ? (
+                    <img src={user.photoUrl} alt="Perfil" className="w-6 h-6 rounded-full object-cover border border-primary" />
+                  ) : (
+                    <User size={24} />
+                  )}
+                  <span className="text-xs mt-1 hidden md:block">{user.name?.split(' ')[0] || 'Usuário'}</span>
+                </button>
+                
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 text-dark border border-gray-100">
+                    <div className="px-4 py-2 border-b border-gray-100 text-sm">
+                      <p className="font-bold truncate">{user.name}</p>
+                      <p className="text-gray-500 text-xs truncate">{user.email}</p>
+                    </div>
+                    <Link 
+                      to="/conta" 
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Conferir Conta
+                    </Link>
+                    <button 
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        alert("Alternando tema... (Apenas visual no protótipo)");
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Modo Escuro / Claro
+                    </button>
+                    <div className="border-t border-gray-100"></div>
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-semibold"
+                    >
+                      Deslogar (Sair)
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link to="/login" className="flex flex-col items-center hover:text-primary transition-colors">
+                <User size={24} />
+                <span className="text-xs mt-1 hidden md:block">Entrar</span>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
