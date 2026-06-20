@@ -1,8 +1,11 @@
 import React from 'react';
 import { Search, ShoppingCart, Heart, User, Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useCart } from '../contexts/CartContext';
 
 export default function Header() {
+  const { totalItems, setIsCartOpen } = useCart();
+
   return (
     <header className="bg-dark text-light sticky top-0 z-50 shadow-md">
       {/* Top Bar */}
@@ -35,15 +38,17 @@ export default function Header() {
             <Heart size={24} />
             <span className="text-xs mt-1 hidden md:block">Desejos</span>
           </Link>
-          <Link to="/cart" className="flex flex-col items-center hover:text-primary transition-colors relative">
+          <button onClick={() => setIsCartOpen(true)} className="flex flex-col items-center hover:text-primary transition-colors relative">
             <div className="relative">
               <ShoppingCart size={24} />
-              <span className="absolute -top-2 -right-2 bg-accent text-dark text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                0
-              </span>
+              {totalItems > 0 && (
+                <span className="absolute -top-2 -right-2 bg-accent text-dark text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                  {totalItems}
+                </span>
+              )}
             </div>
             <span className="text-xs mt-1 hidden md:block">Reserva</span>
-          </Link>
+          </button>
           <Link to="/login" className="flex flex-col items-center hover:text-primary transition-colors">
             <User size={24} />
             <span className="text-xs mt-1 hidden md:block">Entrar</span>

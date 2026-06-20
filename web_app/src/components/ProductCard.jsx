@@ -1,8 +1,11 @@
 import React from 'react';
 import { Heart, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useCart } from '../contexts/CartContext';
 
 export default function ProductCard({ product }) {
+  const { addToCart } = useCart();
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all group relative flex flex-col">
       {/* Badges */}
@@ -56,7 +59,10 @@ export default function ProductCard({ product }) {
             até 4x de R$ {(product.price / 4).toFixed(2).replace('.', ',')} sem juros
           </div>
 
-          <button className="w-full bg-dark hover:bg-primary text-light py-2 rounded font-bold text-sm flex items-center justify-center gap-2 transition-colors">
+          <button 
+            onClick={() => addToCart(product)}
+            className="w-full bg-dark hover:bg-primary text-light py-2 rounded font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+          >
             <ShoppingBag size={16} />
             Encomendar
           </button>
