@@ -497,19 +497,19 @@ def listar_produtos_teste():
 # STORAGE DE IMAGENS
 # ==============================================================================
 
-def upload_image_to_storage(image_bytes: bytes, file_name: str, content_type: str = "image/jpeg") -> str:
+def upload_image_to_storage(image_bytes: bytes, file_name: str, content_type: str = "image/jpeg", bucket: str = "produtos") -> str:
     """
-    Faz o upload de uma imagem (em bytes) para o bucket 'produtos' no Supabase.
+    Faz o upload de uma imagem (em bytes) para o bucket no Supabase.
     Retorna a URL pública da imagem.
     """
     try:
         unique_name = f"{uuid.uuid4().hex}_{file_name}"
-        res = supabase.storage.from_("produtos").upload(
+        res = supabase.storage.from_(bucket).upload(
             file=image_bytes,
             path=unique_name,
             file_options={"content-type": content_type}
         )
-        public_url = supabase.storage.from_("produtos").get_public_url(unique_name)
+        public_url = supabase.storage.from_(bucket).get_public_url(unique_name)
         return public_url
     except Exception as e:
         print(f"Erro ao fazer upload da imagem {file_name}: {e}")

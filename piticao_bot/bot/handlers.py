@@ -267,6 +267,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
         
     if text == "🔙 Voltar ao Menu":
+        user_states.pop(telegram_id, None)
         await update.message.reply_text(
             "Retornando ao menu principal.",
             reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing)
@@ -662,6 +663,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Comando Inicial ou Menu (Boas vindas e exibição do Teclado)
     if text.startswith("/start") or text.startswith("/menu"):
+        user_states.pop(telegram_id, None)
         nome_exibicao = NIVEIS.get(nivel_efetivo)
         aviso_teste = "\n*(Você está no Modo Testador)*" if is_testing else ""
         await update.message.reply_text(f"Olá {funcionario['nome']}! Sou o Piticão 🐶.\nSua área de trabalho ({nome_exibicao}) já está carregada no teclado abaixo.{aviso_teste}", reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing), parse_mode="Markdown")
@@ -672,23 +674,50 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("📸 Imagem recebida! Processando com a Inteligência Artificial do Piticão...")
         
         try:
-            # Pega a foto em melhor qualidade (última da lista)
             photo_file = await update.message.photo[-1].get_file()
-            
-            # Cria um arquivo temporário no sistema
             with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as temp_img:
                 caminho_temporario = temp_img.name
-                
-            # Baixa a imagem do servidor do Telegram
             await photo_file.download_to_drive(caminho_temporario)
             
-            # Envia para a API do Gemini processar
+            # Se a foto foi enviada no meio do fluxo do Funko
+            if estado_atual and estado_atual.startswith("teste_funko_nome"):
+                from services.gemini_service import analisar_caixa_funko
+                resultado = analisar_caixa_funko(caminho_temporario)
+                try:
+                    import json
+                    limpo = resultado.replace("```json", "").replace("```", "").strip()
+                    dados = json.loads(limpo)
+                    
+                    nome = dados.get("nome")
+                    franquia = dados.get("franquia")
+                    numero = dados.get("numero")
+                    
+                    faltando = []
+                    if not nome: faltando.append("*NOME* do personagem")
+                    if not franquia: faltando.append("*FRANQUIA*")
+                    if not numero: faltando.append("*NÚMERO* da caixa")
+                    
+                    if faltando:
+                        lista_faltando = ", ".join(faltando)
+                        user_states[telegram_id] = f"teste_funko_nome|||{nome or 'null'}|||{franquia or 'null'}|||{numero or 'null'}"
+                        await update.message.reply_text(f"Entendi algumas coisas na foto, mas ainda falta: {lista_faltando}.\n\nPode me informar o que falta digitando aqui?", parse_mode="Markdown")
+                        os.remove(caminho_temporario)
+                        return
+                        
+                    nome_encontrado = f"BONECO FUNKO POP! {str(franquia).upper()} - {str(nome).upper()} #{str(numero)}"
+                    user_states[telegram_id] = f"teste_funko_confirma|||{nome}|||{franquia}|||{numero}"
+                    keyboard = ReplyKeyboardMarkup([["✅ Sim", "❌ Não"]], resize_keyboard=True)
+                    await update.message.reply_text(f"🔎 Li a caixa do Funko e encontrei:\n*{nome_encontrado}*\n\nÉ esse mesmo que você quer cadastrar?", parse_mode="Markdown", reply_markup=keyboard)
+                    os.remove(caminho_temporario)
+                    return
+                except Exception as e:
+                    await update.message.reply_text("❌ Erro ao entender os dados da foto da caixa. Tente digitar as informações ou enviar outra foto.")
+                    os.remove(caminho_temporario)
+                    return
+            
+            # Caso contrário, é apenas uma leitura livre normal
             resultado = analisar_imagem_gemini(caminho_temporario)
-            
-            # Responde ao usuário com o resultado
             await update.message.reply_text(f"🤖 *Resultado da Leitura IA:*\n`{resultado}`", parse_mode="Markdown")
-            
-            # Limpa o arquivo temporário
             os.remove(caminho_temporario)
             
         except Exception as e:
