@@ -24,4 +24,17 @@ Este documento dita as leis supremas do projeto Master Geek. A Inteligência Art
 
 ## 5. Regras do Backend (Página de Ajuste de Catálogo)
 1. **Autenticação "Telegram Only":** A página de ajustes (antigo Admin) não aceita e-mail e senha. A única porta de entrada é um Link Mágico temporário (JWT) injetado através dos botões no Bot do Telegram.
-2. **Gargalo de Publicação:** Funcionários (Quiosque, Boss, Marketing) podem acessar a página para ajustar fotos, corrigir textos e salvar edições. Porém, o ato de alterar o status para `PUBLICADO` (enviar o produto para o site público) é uma **ação de privilégio exclusivo do Administrador**.
+2. **Sistema de Aprovação (Solicitar Publicação):** 
+   - Usuários como Boss e Marketing poderão acessar a página web e editar informações dos produtos, mas eles **NÃO** terão o botão "Publicar".
+   - Eles terão um botão chamado **"Solicitar Publicação"**.
+   - Ao clicar, o Bot no Telegram enviará uma notificação ao Administrador dizendo que um usuário (identificado pelo ID) solicitou a publicação de um item.
+   - O Administrador poderá conferir o catálogo, e, estando tudo certo, ele mesmo clicará em "Publicar", alterando o status do produto.
+
+## 6. Fluxo de Caixa e Reposição (Interface Quiosque)
+1. **Dinâmica de Botões do Quiosque:**
+   - **Estoque (Entrada):** Serve exclusivamente para o Vendedor cadastrar/dar entrada em novos produtos que chegaram.
+   - **Venda (Saída):** Funciona para dar "baixa" no sistema. O Vendedor tira uma foto do produto vendido (ex: caneca) para registrar a saída.
+   - **Reposição:** Uma lista gerada a partir das "Vendas (Saídas)" do dia/período. Essa lista será compartilhada com o gestor para guiar a reposição do estoque físico daquele quiosque.
+
+## 7. Princípio do Documento Vazio (Just-in-Time)
+1. **Evitar Poluição de Informação:** Para garantir foco, arquivos de documentação para interfaces de usuários secundários (Ex: `Interface_Boss.md`, `Interface_Marketing.md` e `Interface_Quiosque.md`) deverão permanecer **completamente vazios** até o momento exato em que suas respectivas interfaces (botões e lógicas de código) comecem a ser efetivamente programadas.

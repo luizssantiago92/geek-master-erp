@@ -22,4 +22,5 @@ Dentro do menu `🛠️ Sistema`, o Admin clica em `Ativar Modo Testador`. A par
 
 ## Ferramentas Disponíveis no Telegram (Modo Testador)
 - **📦 Estoque Teste:** Simula o envio de foto/cadastro de produto, mas direcionando para tabelas ou nomes simulados (`[TESTE]`).
+- **🧪 Testar Usuários:** Permite ao Admin gerar um código da classe `TST-` para simular um onboarding de novos funcionários. Com isso, o Admin pode "encarnar" temporariamente a interface e permissões de Níveis inferiores (ex: Quiosque, Boss) no próprio celular para ver como eles enxergam os menus.
 - **🔗 Página de Ajustes Teste:** Gera um link mágico que, na interface Web, permite ver claramente quais produtos são "lixo de teste" para poderem ser apagados a qualquer momento com segurança, sem medo de apagar o estoque real.
