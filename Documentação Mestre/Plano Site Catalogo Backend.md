@@ -3,9 +3,11 @@
 ## 1. Objetivo e Função
 A parte Backend do Site (Rota `/admin`) é o Painel de Aprovação e Curadoria. Ele existe para ser o ponto de controle humano entre o trabalho automático que o Robô (Telegram) faz e o que o cliente final vê na internet.
 
-## 2. Tipos de Usuário e Autenticação
-- **Administrador (Master / Dono):** Acesso irrestrito a todas as páginas do sistema administrativo. 
-- **Pessoal Autorizado (Vendedores/Staff):** O acesso à rota `/admin` será bloqueado por um sistema de login ou proteção de rota. Visitantes normais que tentarem acessar a URL serão barrados. O nível de permissão ditará o que cada um pode fazer (a ser estruturado via perfis de Auth no Supabase).
+## 2. Autenticação e Segurança (Telegram Auth Exclusivo)
+O sistema não possui tela clássica de Login (e-mail/senha) para a área administrativa.
+- **Acesso Bloqueado:** A rota `/admin` não pode ser acessada digitando a URL no navegador. Se tentarem, recebem tela de Acesso Negado (HTTP 403).
+- **A Chave é o Celular (Telegram):** O único jeito de entrar no painel de edição é usando os botões ("Produtos Cadastrados" / "Estoque") dentro do Bot do Telegram, que injetam um Link Mágico (Magic Link temporário/JWT).
+- **Controle Total:** Se um funcionário for demitido, o Adm exclui o Telegram dele no banco. O funcionário perde instantaneamente a habilidade de gerar os links mágicos e, consequentemente, não consegue mais acessar o Backend Web de nenhum computador, garantindo segurança corporativa máxima.
 
 ## 3. Funcionamento e Etapas (Curadoria de Produtos)
 

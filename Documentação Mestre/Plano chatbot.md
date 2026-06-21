@@ -17,10 +17,12 @@ O bot exibe menus diferentes dependendo do cargo da pessoa:
 3. **Marketing:** Focado em ferramentas de promoção, banners, vitrine e criação de copies (textos de venda). Não se envolve com o caixa do quiosque.
 4. **Quiosque (Vendedores):** Focado na operação da ponta. Usam o bot para cadastrar caixas novas rapidamente, buscar preço para cliente ou checar estoque. Visão totalmente limpa e sem botões que não competem à venda diária.
 
-## 4. O Modo Testador (Exclusivo Adm)
+## 4. O Modo Testador (Exclusivo Adm) e Integração Backend
 O Adm possui um comando nativo chamado **Modo Testador**.
 - **Simulação de Hierarquia:** O Adm pode ativar esse modo para assumir temporariamente a identidade de um `Boss`, `Marketing` ou `Quiosque`. Isso serve para testar em tempo real se os botões e regras daquele perfil específico estão funcionando.
 - **Cadastro de Produtos Teste (Sandbox):** O ato de cadastrar produtos de teste é uma funcionalidade nativa e essencial do Modo Testador. Ele serve exclusivamente para inserir produtos fictícios que ganham a tag `[TESTE]`. Esses produtos de teste nunca vão para a Vitrine principal, indo cair apenas em uma página de Backend isolada, permitindo ao Adm checar o comportamento do Scraper e do banco de dados sem poluir o estoque real.
+- **Botão "Produtos Cadastrados" (Ponte Web):** Através do Modo Testador, o usuário ganha acesso a esse botão que atua como uma "Chave Física" para o Sistema Web. O bot não lista os produtos no Telegram, mas sim gera um **Link Mágico** e criptografado que redireciona o usuário ao painel Backend Web (`/admin`).
+- **Fase de Desenvolvimento (Regra de Ouro):** Durante a criação, os botões de ponte Web ("Produtos Cadastrados" e "Estoque") serão construídos e aprimorados **exclusivamente dentro do Modo Testador**. Somente após garantirmos que o fluxo do Telegram para a Web funciona com perfeição e sem furos de segurança, replicaremos esse acesso para os menus reais de Quiosque, Boss e Marketing. O Modo Testador manterá esses botões permanentemente como ambiente seguro (sandbox) para auditorias futuras.
 
 ## 5. Botão Personas e Ranking de Uso
 - **O Botão Personas:** No menu, há um botão chamado "Personas" que abre uma lista com 10 personalidades baseadas em personagens de franquias famosas (ex: Vegeta, Darth Vader, Deadpool). A persona padrão do sistema é o **"Piticão"**.
