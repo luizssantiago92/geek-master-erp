@@ -23,6 +23,7 @@ export default function Home() {
         const { data, error } = await supabase
           .from('produtos')
           .select('*')
+          .eq('status_publicacao', 'PUBLICADO')
           .order('criado_em', { ascending: false });
           
         if (error) throw error;

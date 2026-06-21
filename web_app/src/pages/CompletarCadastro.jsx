@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
+import { supabase } from '../lib/supabase';
 
 export default function CompletarCadastro() {
   const navigate = useNavigate();
-  const { completeRegistration } = useUser();
+  const { completeRegistration, updateUser } = useUser();
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -15,12 +17,49 @@ export default function CompletarCadastro() {
     isWhatsapp: false
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Em produção, isso salvaria os dados complementares no banco de dados (Supabase)
-    completeRegistration();
-    alert('Dados salvos! Vamos configurar suas preferências.');
-    navigate({ pathname: '/onboarding', search: window.location.search });
+    setLoading(true);
+    try {
+      // 1. Tenta buscar cliente existente pelo CPF
+      let clienteId = null;
+      const { data: existente } = await supabase.from('clientes').select('id').eq('cpf', formData.cpf).single();
+      
+      if (existente) {
+        clienteId = existente.id;
+        // Atualiza os dados
+        await supabase.from('clientes').update({
+          nome: formData.nome,
+          telefone: formData.telefone
+        }).eq('id', clienteId);
+      } else {
+        // 2. Se não existir, cria um novo
+        const { data: novoCliente, error } = await supabase.from('clientes').insert({
+          cpf: formData.cpf,
+          nome: formData.nome,
+          telefone: formData.telefone,
+          nivel_vip: 'Novato'
+        }).select().single();
+        
+        if (error) throw error;
+        clienteId = novoCliente.id;
+      }
+
+      // Salva no contexto
+      updateUser({
+        ...formData,
+        cliente_id: clienteId
+      });
+
+      completeRegistration();
+      alert('Dados salvos com sucesso!');
+      navigate({ pathname: '/onboarding', search: window.location.search });
+    } catch (error) {
+      console.error('Erro ao salvar cliente:', error);
+      alert('Ocorreu um erro ao salvar seus dados. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSkip = () => {
@@ -122,9 +161,10 @@ export default function CompletarCadastro() {
           <div className="pt-6 border-t border-gray-100 flex flex-col gap-3">
             <button 
               type="submit" 
-              className="w-full bg-primary hover:bg-orange-600 text-light font-bold py-3 rounded transition-colors text-lg"
+              disabled={loading}
+              className="w-full bg-primary hover:bg-orange-600 disabled:opacity-50 text-light font-bold py-3 rounded transition-colors text-lg"
             >
-              Continuar e Salvar
+              {loading ? 'Salvando...' : 'Continuar e Salvar'}
             </button>
             <button 
               type="button" 

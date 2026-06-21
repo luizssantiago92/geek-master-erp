@@ -55,6 +55,67 @@ def analisar_imagem_gemini(caminho_imagem: str):
         print(f"Erro ao analisar com Gemini: {e}")
         return f"Erro na IA: {str(e)}"
 
+def analisar_caixa_funko(caminho_imagem: str):
+    """
+    Envia a foto da caixa do Funko Pop para o Gemini 1.5 Flash
+    para extrair Nome, Franquia e Número.
+    """
+    if not GEMINI_API_KEY:
+        return '{"erro": "Chave do Gemini não configurada."}'
+        
+    try:
+        import google.generativeai as genai
+        # Ler a imagem
+        with open(caminho_imagem, "rb") as image_file:
+            image_data = image_file.read()
+            
+        image_blob = {
+            'mime_type': 'image/jpeg',
+            'data': image_data
+        }
+        
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        prompt = (
+            "Você é um especialista em Funko Pops. Analise esta imagem que é (ou deveria ser) "
+            "a frente de uma caixa de Funko Pop."
+            "Extraia exatamente 3 informações da caixa:"
+            "1. 'nome': O nome do personagem (fica na parte de baixo, geralmente em destaque)."
+            "2. 'franquia': A franquia ou marca que o personagem pertence (fica na parte de cima, ex: MARVEL, HARRY POTTER, DISNEY, ANIMATION)."
+            "3. 'numero': O número do Funko na coleção (fica no canto superior direito, apenas os números)."
+            "Retorne a resposta ESTRITAMENTE em formato JSON válido com as chaves 'nome', 'franquia' e 'numero'. "
+            "Exemplo: {\"nome\": \"IRON MAN\", \"franquia\": \"MARVEL\", \"numero\": \"580\"}. "
+            "Se você não conseguir identificar com clareza alguma das informações, deixe como null. "
+            "Não coloque a palavra json, nem crases. Retorne APENAS o JSON puro."
+        )
+        
+        response = model.generate_content([image_blob, prompt])
+        return response.text.strip()
+    except Exception as e:
+        print(f"Erro no Gemini analisar_caixa_funko: {e}")
+        return '{"erro": "Falha na comunicação"}'
+
+def extrair_dados_funko_texto(texto: str):
+    """ Extrai Nome, Franquia e Número de um texto livre. """
+    if not GEMINI_API_KEY: return '{"erro": "Sem chave"}'
+    try:
+        import google.generativeai as genai
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        prompt = (
+            "Extraia as seguintes informações do texto sobre um Funko Pop:\n"
+            "1. 'nome': O personagem\n"
+            "2. 'franquia': A franquia ou marca (ex: Marvel, Disney)\n"
+            "3. 'numero': O número do funko\n"
+            f"Texto: '{texto}'\n"
+            "Retorne APENAS um JSON válido com chaves 'nome', 'franquia', 'numero'. "
+            "Se algo não for mencionado com clareza, deixe o valor como null."
+        )
+        resp = model.generate_content(prompt)
+        return resp.text.strip()
+    except Exception as e:
+        print(f"Erro no extrair_dados_funko_texto: {e}")
+        return '{"erro": "Falha na comunicação"}'
+
 def chat_com_persona(texto_usuario: str, persona: str) -> str:
     """Conversa livre usando a personalidade da persona escolhida."""
     if not GEMINI_API_KEY:

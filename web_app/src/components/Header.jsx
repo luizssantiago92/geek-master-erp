@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ShoppingCart, Heart, User, Menu } from 'lucide-react';
+import { Search, ShoppingCart, Heart, User, Menu, Settings } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useUser } from '../contexts/UserContext';
@@ -44,6 +44,10 @@ export default function Header() {
 
         {/* Actions */}
         <div className="flex items-center gap-6">
+          <Link to="/admin" className="flex flex-col items-center hover:text-primary transition-colors text-yellow-400">
+            <Settings size={24} />
+            <span className="text-xs mt-1 hidden md:block">Admin</span>
+          </Link>
           <Link to="/wishlist" className="flex flex-col items-center hover:text-primary transition-colors">
             <Heart size={24} />
             <span className="text-xs mt-1 hidden md:block">Desejos</span>

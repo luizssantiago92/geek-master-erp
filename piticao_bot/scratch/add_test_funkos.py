@@ -18,7 +18,10 @@ for p, franquia, tipo in produtos_para_cadastrar:
             "franquia": franquia,
             "preco_base": res["preco_base"],
             "imagem_url": res.get("imagem_url"),
-            "ean": str(uuid.uuid4())[:13]
+            "ean": str(uuid.uuid4())[:13],
+            "descricao": res.get("descricao"),
+            "is_new": res.get("is_new", False),
+            "imagens_galeria": res.get("imagens_galeria", [])
         }
         salvo = salvar_produto(produto_db)
         print(f"Cadastrado: {produto_db['nome']} -> {salvo}")

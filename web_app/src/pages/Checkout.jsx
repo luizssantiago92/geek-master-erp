@@ -46,7 +46,7 @@ const KIOSKS = [
 
 export default function Checkout() {
   const { cart, totalPrice, clearCart } = useCart();
-  const { isRegistrationComplete } = useUser();
+  const { user, isRegistrationComplete } = useUser();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -84,12 +84,46 @@ export default function Checkout() {
     );
   }
 
-  const handleFinish = (e) => {
+  const handleFinish = async (e) => {
     e.preventDefault();
-    // Save to supabase `encomendas` table here
-    alert('Encomenda realizada com sucesso! Você receberá as atualizações no WhatsApp.');
-    clearCart();
-    navigate('/');
+    if (!user || !user.cliente_id) {
+      alert("Por favor, complete seu cadastro antes de finalizar a encomenda.");
+      navigate('/completar-cadastro');
+      return;
+    }
+    
+    try {
+      // 1. Gera código de retirada (ex: A8F2)
+      const codigoRetirada = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+      // Para fins de teste, como não temos quiosques reais no banco com ID, passamos null (ON DELETE SET NULL na tabela permite isso por enquanto)
+      const { data: encomenda, error: encError } = await supabase.from('encomendas').insert({
+        cliente_id: user.cliente_id,
+        codigo_retirada: codigoRetirada,
+        valor_original: totalPrice,
+        status: 'PENDENTE'
+      }).select().single();
+
+      if (encError) throw encError;
+
+      // 2. Insere os itens da encomenda
+      const itemsToInsert = cart.map(item => ({
+        encomenda_id: encomenda.id,
+        produto_id: item.id,
+        quantidade: item.quantity,
+        preco_unitario: item.price
+      }));
+
+      const { error: itemsError } = await supabase.from('encomendas_items').insert(itemsToInsert);
+      if (itemsError) throw itemsError;
+
+      alert(`Encomenda realizada com sucesso! Código: ${codigoRetirada}. Em breve enviaremos detalhes no WhatsApp!`);
+      clearCart();
+      navigate('/conta');
+    } catch (error) {
+      console.error('Erro ao finalizar encomenda:', error);
+      alert('Erro ao processar sua encomenda. Tente novamente.');
+    }
   };
 
   const selectedKiosk = KIOSKS.find(k => k.id === formData.kiosk);

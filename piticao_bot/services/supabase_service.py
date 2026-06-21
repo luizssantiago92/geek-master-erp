@@ -248,15 +248,10 @@ def verificar_autorizacao_valida(solicitante_id: str, acao_alvo: str):
                     expira = datetime.fromisoformat(auth["expira_em"].replace("Z", "+00:00"))
                     if datetime.now(expira.tzinfo) <= expira:
                         return True
-            
-            if auth["status"] == "AUTORIZADO_UNICA":
-                # Marca como usada (se quisermos consumir) e retorna True
-                supabase.table("autorizacoes").update({"status": "CONSUMIDA"}).eq("id", auth["id"]).execute()
-                return True
-                
+                        
         return False
     except Exception as e:
-        print(f"Erro ao verificar autorizações vigentes: {e}")
+        print(f"Erro ao verificar autorizações: {e}")
         return False
 
 def get_usuarios_gold(nivel_acesso: int):
@@ -497,6 +492,28 @@ def listar_produtos_teste():
     except Exception as e:
         print(f"Erro ao listar produtos teste: {e}")
         return []
+
+# ==============================================================================
+# STORAGE DE IMAGENS
+# ==============================================================================
+
+def upload_image_to_storage(image_bytes: bytes, file_name: str, content_type: str = "image/jpeg") -> str:
+    """
+    Faz o upload de uma imagem (em bytes) para o bucket 'produtos' no Supabase.
+    Retorna a URL pública da imagem.
+    """
+    try:
+        unique_name = f"{uuid.uuid4().hex}_{file_name}"
+        res = supabase.storage.from_("produtos").upload(
+            file=image_bytes,
+            path=unique_name,
+            file_options={"content-type": content_type}
+        )
+        public_url = supabase.storage.from_("produtos").get_public_url(unique_name)
+        return public_url
+    except Exception as e:
+        print(f"Erro ao fazer upload da imagem {file_name}: {e}")
+        return None
 
 def excluir_produto_teste(produto_id: str):
     """Exclui um produto do banco pelo ID."""

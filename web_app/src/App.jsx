@@ -11,6 +11,8 @@ import Onboarding from './pages/Onboarding';
 import Checkout from './pages/Checkout';
 import CompletarCadastro from './pages/CompletarCadastro';
 import Conta from './pages/Conta';
+import ProductDetails from './pages/ProductDetails';
+import AdminCatalog from './pages/AdminCatalog';
 
 function App() {
   return (
@@ -29,6 +31,8 @@ function App() {
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/completar-cadastro" element={<CompletarCadastro />} />
                 <Route path="/conta" element={<Conta />} />
+                <Route path="/produto/:id" element={<ProductDetails />} />
+                <Route path="/admin" element={<AdminCatalog />} />
                 {/* Outras rotas entrarão aqui */}
               </Routes>
             </main>
