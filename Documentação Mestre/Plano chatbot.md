@@ -19,12 +19,13 @@ O bot exibe menus diferentes dependendo do cargo da pessoa:
 
 ## 4. O Modo Testador (Exclusivo Adm)
 O Adm possui um comando nativo chamado **Modo Testador**.
-- **Simulação de Personas:** O Adm pode ativar esse modo para assumir temporariamente a identidade de um `Boss`, `Marketing` ou `Quiosque`. Isso serve para testar em tempo real se os botões e regras daquele perfil específico estão funcionando, antes de liberar a versão final para a equipe.
-- **Produtos Isolados (Sandbox):** Qualquer produto cadastrado com o Modo Testador ativado é marcado internamente como `[TESTE]`. Esses produtos nunca vão para a Vitrine principal, indo cair exclusivamente em uma página de Backend isolada, onde o Adm checa se o Scraper e os dados entraram corretamente no banco.
+- **Simulação de Hierarquia:** O Adm pode ativar esse modo para assumir temporariamente a identidade de um `Boss`, `Marketing` ou `Quiosque`. Isso serve para testar em tempo real se os botões e regras daquele perfil específico estão funcionando.
+- **Cadastro de Produtos Teste (Sandbox):** O ato de cadastrar produtos de teste é uma funcionalidade nativa e essencial do Modo Testador. Ele serve exclusivamente para inserir produtos fictícios que ganham a tag `[TESTE]`. Esses produtos de teste nunca vão para a Vitrine principal, indo cair apenas em uma página de Backend isolada, permitindo ao Adm checar o comportamento do Scraper e do banco de dados sem poluir o estoque real.
 
-## 5. Personas da IA e Ranking (Gamificação)
-- **Personas (Stealth):** O bot não tem a mesma "personalidade" com todo mundo. A Inteligência Artificial ajusta seu tom (mais sério com o Boss, mais animado ou dinâmico com o Quiosque), criando uma experiência conversacional direcionada.
-- **Sistema de Ranking:** Existe uma camada de gamificação interna. Funcionários ganham XP ou sobem em um ranking baseado em interações e cadastros efetuados.
+## 5. Botão Personas e Ranking de Uso
+- **O Botão Personas:** No menu, há um botão chamado "Personas" que abre uma lista com 10 personalidades baseadas em personagens de franquias famosas (ex: Vegeta, Darth Vader, Deadpool). A persona padrão do sistema é o **"Piticão"**.
+- **Comportamento Direto (Zero Papo Furado):** Ao escolher uma persona, a Inteligência Artificial passa a falar no estilo do personagem, MAS sob uma regra inquebrável: ela nunca fica de "papo furado". A IA é focada unicamente em direcionar o usuário para o uso da aplicação, mantendo a produtividade intacta com um tom divertido.
+- **Ranking de Personas:** O Ranking não é voltado ao usuário, mas sim ao uso das Personas. Toda vez que uma persona é utilizada pelos usuários, ela ganha um "voto". A persona que receber mais votos fica em primeiro lugar no ranking. O objetivo dessa ferramenta é dar inteligência ao Administrador para ver quais personas a equipe mais usa e quais são ignoradas, permitindo a substituição das menos utilizadas no futuro.
 
 ## 6. Fluxo de Operação Principal: Cadastro em Lote (Ex: Funko)
 1. **Início:** O usuário (ex: Quiosque) seleciona a categoria "Funko Pop".
