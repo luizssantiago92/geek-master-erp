@@ -1,28 +1,35 @@
 # Plano Site Catálogo Frontend (Público)
 
 ## 1. Objetivo e Função
-O Frontend do Site Catálogo é a Vitrine da loja física na internet. Sua principal função é exibir os produtos que estão no estoque e incentivar o cliente a fazer uma compra ou reserva.
+O Frontend do Site não atua como um e-commerce tradicional com vendas diretas online, mas sim como um **Catálogo de Encomendas para Retirada Física**. Sua principal função é exibir os produtos que estão no estoque, incentivar o cliente a criar sua lista e enviar uma solicitação de reserva para buscar no quiosque.
 
 ## 2. Tipos de Usuário
-- **Visitantes Anônimos:** Clientes que apenas navegam pela vitrine, olham os lançamentos e preços.
-- **Clientes Logados:** Clientes que criaram uma conta (Cadastro) e fizeram Login. Têm acesso ao perfil, lista de desejos e histórico.
+- **Visitantes Anônimos:** Clientes que apenas navegam pela vitrine, olham os lançamentos, as opções de parcelamento e preços.
+- **Clientes Logados:** Clientes que efetuaram cadastro na plataforma e podem montar o carrinho de encomendas.
 
-## 3. Funcionamento e Etapas (Experiência do Cliente)
+## 3. Autenticação e Perfil do Cliente
+1. **Login:** Acesso facilitado via botões rápidos (Google e Facebook) ou cadastro padrão por E-mail.
+2. **Cadastro Completo Obrigatório:** Para realizar encomendas, o sistema exige um perfil detalhado do cliente para controle de contato e preferências:
+   - **Dados Básicos:** Nome Completo, CPF, Data de Nascimento (para verificar idade).
+   - **Contato:** Número de telefone e confirmação se o número possui WhatsApp, além do e-mail.
+   - **Preferências:** Um campo dedicado para o cliente listar suas franquias e personagens favoritos (ajuda na curadoria futura).
 
-1. **Autenticação e Cadastro:**
-   - **Login:** O sistema terá opções de login (ex: e-mail/senha ou Google). 
-   - **Completar Cadastro:** Após a criação da conta básica, o cliente será direcionado para uma página onde preencherá seus dados vitais (Nome completo, Telefone, Endereço de entrega, CPF) para que o sistema saiba quem ele é.
-2. **Navegação na Vitrine (Home):**
-   - O cliente acessa o site e vê apenas os produtos que possuem o `status_publicacao = 'PUBLICADO'`.
-   - Há um bloqueio de segurança: Qualquer produto cadastrado pelo robô que inicie com a palavra `[TESTE]` nunca aparecerá aqui.
-   - Os produtos exibem banners de **"Lançamento"** baseados nos dados coletados pelo scraper.
-3. **Página do Produto e Recomendações:**
-   - Ao clicar num produto, o cliente vê a galeria de imagens oficiais, preço e descrição técnica.
-   - O site exibirá seções dinâmicas de "Quem viu isto, também viu..." (Recomendações cruzadas de produtos similares ou da mesma franquia).
-4. **Carrinho / Checkout:**
-   - O cliente adiciona itens ao carrinho.
-   - A página de Checkout exibe o total.
+## 4. Navegação e Regras de Negócio na Vitrine
+1. **Filtro de Visibilidade:** O site consome os dados do Supabase. Somente produtos com `status_publicacao = 'PUBLICADO'` aparecem. Produtos com a tag `[TESTE]` inseridos pelo robô são sumariamente ocultados.
+2. **Edição de Preços:** Os valores visíveis na vitrine são definidos exclusivamente pela equipe interna através do Painel de Backend.
+3. **Escassez e Limites:** Devido ao modelo de negócio baseado em itens de coleção e estoques limitados, o site impõe uma trava sistêmica de **máximo de 3 unidades** do mesmo produto por cliente na mesma encomenda.
+4. **Regras de Parcelamento (Informativo Visual):** Na página do produto e no carrinho, o site exibe as condições de pagamento que o cliente encontrará lá no balcão físico:
+   - Pagamento em até **5x sem juros no Cartão de Crédito**.
+   - **Restrição de Parcela Mínima:** O valor de cada parcela não pode ser menor que R$ 60,00. (Ex: para parcelar em 2x, o total da reserva deve ser no mínimo R$ 120,00).
 
-## 4. Questões em Aberto / Pendências a Resolver
-- **Finalização do Checkout:** O fluxo de Checkout final vai gerar um Pix automático e realizar a venda direto pelo site, ou vai redirecionar a lista de compras para o WhatsApp para que o vendedor finalize a negociação humanizada?
-- **Sistema de Fidelidade / Ranking:** Será necessário integrar o ranking de clientes (XP) já no cadastro/login do frontend?
+## 5. Carrinho de Encomendas e Finalização
+1. **Montagem da Lista:** O cliente adiciona itens à sua lista/carrinho (sujeito à regra de escassez).
+2. **Cupons de Desconto:** No carrinho, haverá um campo de cupom. (O sistema lerá uma tabela no banco de dados para checar a validade e abater o valor do total. Estratégia pensada para tracionar a futura comunidade de fãs no WhatsApp).
+3. **Seleção de Quiosque:** O cliente escolhe em qual unidade física (Quiosque) ele deseja buscar sua encomenda.
+4. **Validação de Cadastro:** Ao clicar em "Enviar Encomenda":
+   - Se o cadastro estiver completo: A solicitação é enviada e cai na fila do Backend Administrativo da loja.
+   - Se o cadastro estiver incompleto: O fluxo é travado e o usuário é redirecionado para a página de Perfil com um alerta solicitando o preenchimento dos dados (CPF, idade, etc) faltantes.
+5. **Pagamento (Presencial):** O site não processa o dinheiro. O cliente consolida seu pedido de forma online, garantindo a reserva, mas passará o cartão ou pagará via Pix pessoalmente no momento da retirada no quiosque.
+
+## 6. Questões em Aberto / Pendências a Resolver
+*(Nenhum conflito atual. O fluxo do site foi redesenhado 100% como catálogo de reserva física. Nenhuma funcionalidade de e-commerce real existirá.)*
