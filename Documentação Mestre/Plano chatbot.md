@@ -1,46 +1,37 @@
 # Plano Chatbot (Telegram) - Bíblia do Sistema
 
 ## 1. Objetivo e Função
-O Chatbot no Telegram atua como um **Assistente Administrativo (Backoffice)** para a loja física e online. Sua principal função é eliminar o trabalho braçal de cadastro de produtos, permitindo que a entrada de novos itens no sistema seja rápida, intuitiva e, preferencialmente, feita apenas tirando fotos com o celular. Funciona como a principal interface de inserção de dados no banco (Supabase).
+O Chatbot no Telegram atua como um **Assistente Administrativo (Backoffice)** para a loja física e online. Sua principal função é eliminar o trabalho braçal de cadastro de produtos, gerenciamento de estoque e campanhas, funcionando como o cérebro central de entrada de dados no Supabase.
 
-## 2. Autenticação e Primeiros Passos (O comando `/start`)
-Como o sistema insere dados reais no banco de dados da loja, ele é estritamente privado.
-- **Primeiro Acesso:** Quando uma pessoa desconhecida manda `/start` para o bot, ele captura o Telegram ID dela. O bot informa que ela não tem acesso e a coloca em uma fila de solicitações.
-- **Liberação:** Essa pessoa só consegue usar o bot após um usuário com perfil **Master** aprovar seu acesso.
-- **Mensagem de Boas-vindas:** Assim que o acesso é liberado, no próximo comando, o bot saúda o funcionário e exibe o menu principal condizente com seu nível de permissão.
+## 2. Autenticação e Controle de Acesso Restrito
+O sistema é inviolável e não permite "cadastro aberto". Todo usuário precisa de um convite para existir.
+- **Convite Único (Código/QRCode):** O administrador gera um código de acesso único atrelado a um nome e um perfil hierárquico (Cargo). O usuário novato entra no Telegram, digita (ou escaneia) esse código e vincula o próprio Telegram ID ao cargo previamente definido.
+- **Gerenciamento de Vínculos:** O Administrador tem poder absoluto sobre quem está no sistema:
+  - Pode **Desativar/Ativar** temporariamente o acesso de um funcionário sem deletar seus dados históricos.
+  - Pode **Revogar (Deletar)** permanentemente um Telegram ID do banco. Nesse caso, a pessoa só consegue entrar de novo se o Adm gerar um código inteiramente novo.
 
-## 3. Tipos de Usuário e Permissões
-- **Master (Administrador/Dono):** Acesso total. Pode ver todas as opções de cadastro, gerenciar o sistema inteiro e visualizar botões restritos.
-- **Quiosque (Vendedores):** Acesso limitado ao cadastro de produtos. Visão simplificada focada na rotina diária para não sobrecarregar o funcionário. Não pode adicionar outros usuários ou ver relatórios confidenciais.
-- **Modo Testador:** Ativado pelo comando explícito `/teste_on` e desativado por `/teste_off`. Útil para testes de desenvolvimento; garante que qualquer produto cadastrado durante esse modo receba a tag `[TESTE]` e seja sumariamente ignorado pelo site público.
+## 3. Os 4 Perfis de Usuário (Hierarquia)
+O bot exibe menus diferentes dependendo do cargo da pessoa:
+1. **Adm (Desenvolvedor/Sistema):** Acesso Divino. O único que tem acesso ao painel de geração de códigos, revogação de acessos e configurações estruturais do banco de dados e do próprio robô.
+2. **Boss (Gerência / Dono):** Acesso aos cadastros, mas também focado em relatórios comerciais, aprovação final de campanhas e visões estratégicas do negócio.
+3. **Marketing:** Focado em ferramentas de promoção, banners, vitrine e criação de copies (textos de venda). Não se envolve com o caixa do quiosque.
+4. **Quiosque (Vendedores):** Focado na operação da ponta. Usam o bot para cadastrar caixas novas rapidamente, buscar preço para cliente ou checar estoque. Visão totalmente limpa e sem botões que não competem à venda diária.
 
-## 4. Botões, Menus e Comandos Disponíveis
-### Menus Globais
-- **Menu Principal:** Oferece as grandes categorias da loja: `Funko Pop`, `Vestuário Geek`, `Acessórios`, `Decoração` e `Colecionáveis`. *(No futuro, cada categoria terá seu próprio fluxo adaptado).*
-- **Navegação:** Botão obrigatório de `Voltar ao Menu` (ou comando `/cancel`) em todos os submenus para evitar que o usuário fique preso em um diálogo.
-- **Confirmação:** Botões `✅ Sim` e `❌ Não` quando a Inteligência Artificial solicita verificação de dados extraídos.
+## 4. O Modo Testador (Exclusivo Adm)
+O Adm possui um comando nativo chamado **Modo Testador**.
+- **Simulação de Personas:** O Adm pode ativar esse modo para assumir temporariamente a identidade de um `Boss`, `Marketing` ou `Quiosque`. Isso serve para testar em tempo real se os botões e regras daquele perfil específico estão funcionando, antes de liberar a versão final para a equipe.
+- **Produtos Isolados (Sandbox):** Qualquer produto cadastrado com o Modo Testador ativado é marcado internamente como `[TESTE]`. Esses produtos nunca vão para a Vitrine principal, indo cair exclusivamente em uma página de Backend isolada, onde o Adm checa se o Scraper e os dados entraram corretamente no banco.
 
-### Funções Restritas (Somente Master)
-- **Gerenciar Acessos:** Permite ver quem tentou entrar no bot, aprovar pendentes ou gerar códigos/links de acesso para novos vendedores do quiosque.
+## 5. Personas da IA e Ranking (Gamificação)
+- **Personas (Stealth):** O bot não tem a mesma "personalidade" com todo mundo. A Inteligência Artificial ajusta seu tom (mais sério com o Boss, mais animado ou dinâmico com o Quiosque), criando uma experiência conversacional direcionada.
+- **Sistema de Ranking:** Existe uma camada de gamificação interna. Funcionários ganham XP ou sobem em um ranking baseado em interações e cadastros efetuados.
 
-## 5. Funcionamento e Etapas: Cadastro Inteligente em Lote (Exemplo: Funko)
-
-1. **Início do Fluxo:** O usuário seleciona a categoria "Funko Pop".
-2. **Entrada de Dados:** O bot avisa que precisa da foto da caixa (Recomendado) OU de 3 dados textuais (Nome, Franquia, Número) enviados separadamente.
-3. **Análise de Imagem e Lote (Batch):** 
-   - Se o usuário enviar várias fotos de uma vez (ou em rápida sucessão), o bot avisará que está *"analisando o lote de produtos"*. 
-   - A Inteligência Artificial (Gemini Vision) lê cada embalagem individualmente e extrai o Nome, a Franquia e o Número.
-4. **Confirmação Automática:** A IA estrutura a informação ("BONECO FUNKO POP! [FRANQUIA] - [NOME] #[NUMERO]") e pede confirmação apenas se houver dúvida. Se a leitura for óbvia, ele já coloca na fila de processamento.
-5. **Processamento Assíncrono e Scraper:**
-   - Em background (para não travar o bot), o módulo Scraper entra em ação para os itens confirmados.
-   - **Regra de Ouro do Scraper:** Ele buscará as informações **exclusivamente no site oficial `funko.com.br`**, pois todo o estoque físico da loja está disponível lá.
-   - O bot fará o download silencioso da Foto Oficial de Estúdio em alta qualidade, do Preço oficial atualizado e da Descrição, fazendo o upload da imagem diretamente para o Storage do Supabase (para não depender de links de terceiros).
-6. **Salvamento Final:** O bot empurra os dados completos para a tabela `produtos` com o status de `PENDENTE`.
-7. **Finalização:** Ao terminar a varredura do lote e os downloads do scraper, o bot envia um relatório final avisando que *"já cadastrou todos eles"* e pergunta se o usuário deseja registrar mais alguma coisa, retornando automaticamente para o submenu de categorias.
-
-## 6. Resiliência e Tratamento de Erros
-- **Falha da IA:** Se a imagem enviada estiver muito borrada ou a IA não conseguir identificar tratar-se de um Funko, o bot avisará que não encontrou os dados e pedirá para o usuário mandar uma foto melhor ou digitar manualmente.
-- **Falha do Scraper:** Caso o produto (raro/antigo) não esteja mais listado no `funko.com.br`, o bot salvará o produto no banco apenas com os dados vitais extraídos pela foto. O produto ficará com um alerta de "Sem Foto" no Painel Admin do site para intervenção manual.
+## 6. Fluxo de Operação Principal: Cadastro em Lote (Ex: Funko)
+1. **Início:** O usuário (ex: Quiosque) seleciona a categoria "Funko Pop".
+2. **Batch (Lote de Imagens):** O usuário pode tirar 10 fotos seguidas de 10 Funkos diferentes e enviar de uma vez.
+3. **Processamento em Massa:** O bot entra no modo lote e avisa *"Analisando o lote de produtos"*. A Inteligência Artificial (Gemini Vision) lê embalagem por embalagem, extraindo **Nome, Franquia e Número**.
+4. **Acionamento do Scraper:** O bot empurra a lista para background. O Scraper entra em ação e busca as fotos oficiais e preços **exclusivamente no site oficial `funko.com.br`** (Single Source of Truth).
+5. **Aviso Final:** O bot descarrega tudo no banco de dados como `PENDENTE` e avisa *"Já cadastrei todos eles"*, retornando o usuário ao menu principal, sem travar o chat do Telegram em nenhum momento.
 
 ## 7. Questões em Aberto / Pendências a Resolver
-*(Nenhum conflito pendente nesta documentação. Regras estabelecidas e prontas para execução em código.)*
+*(Nenhum conflito atual neste documento. Regras 100% estabelecidas e baseadas no escopo integral.)*
