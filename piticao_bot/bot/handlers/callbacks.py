@@ -1,8 +1,8 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
-from services.supabase_service import get_funcionario_by_telegram_id, supabase, deletar_funcionario, alterar_status_funcionario, gerar_novo_codigo, atualizar_encomenda_status, criar_solicitacao_autorizacao, get_usuarios_gold, get_autorizacao_por_id, atualizar_autorizacao, atualizar_persona, incrementar_uso_persona
+from services.supabase_service import get_funcionario_by_telegram_id, supabase, deletar_funcionario, alterar_status_funcionario, gerar_novo_codigo, atualizar_encomenda_status, criar_solicitacao_autorizacao, get_usuarios_gold, get_autorizacao_por_id, atualizar_autorizacao
 from bot.state import user_states, impersonation_states
-from bot.handlers.core import NIVEIS, APRESENTACOES, get_menu_por_nivel
+from bot.handlers.core import NIVEIS, get_menu_por_nivel
 from datetime import datetime
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -15,7 +15,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     funcionario = get_funcionario_by_telegram_id(telegram_id)
     
     if not funcionario or funcionario['nivel_acesso'] < 3:
-        if not query.data.startswith("enc_") and not query.data.startswith("persona_") and not query.data == "saber_mais_att":
+        if not query.data.startswith("enc_") and not query.data == "saber_mais_att":
             await query.edit_message_text(text="⛔ Permissão negada.")
             return
             
@@ -226,19 +226,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await context.bot.send_message(chat_id=auth_req['solicitante']['telegram_id'], text=f"✅ Sua solicitação para `{auth_req['acao_alvo']}` foi *APROVADA* ({status}). Você já pode executar o comando novamente no painel.", parse_mode="Markdown")
         except: pass
 
-    elif data.startswith("persona_set_"):
-        nova_persona = data.replace("persona_set_", "")
-        atualizado = atualizar_persona(funcionario['id'], nova_persona)
-        
-        if atualizado:
-            incrementar_uso_persona(nova_persona)
-            mensagem_persona = APRESENTACOES.get(nova_persona, APRESENTACOES["Padrão"])
-            await query.edit_message_text(f"✅ Persona alterada para: *{nova_persona}*", parse_mode="Markdown")
-            try: await context.bot.send_message(chat_id=telegram_id, text=mensagem_persona, parse_mode="Markdown")
-            except: pass
-        else:
-            await query.edit_message_text("❌ Erro ao alterar a persona.")
-            
+
     elif data == "teste_onboarding":
         user_states[telegram_id] = "esperando_codigo_teste"
         await query.edit_message_text("🔑 Envie o *Código de Testador* (TST-...) que você gerou para simularmos o seu primeiro acesso:", parse_mode="Markdown")

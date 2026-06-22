@@ -103,17 +103,26 @@ def validar_codigo_teste(codigo: str):
         return None
 
 def registrar_master_admin(telegram_id: str, telegram_name: str):
-    """Registra o primeiro usuário como ADM (Nível 4)."""
+    """Registra ou atualiza um usuário como ADM (Nível 4)."""
     try:
-        novo_funcionario = {
-            "telegram_id": str(telegram_id),
-            "nome": telegram_name,
-            "cargo": "Administrador Master",
-            "nivel_acesso": 4,
-            "ativo": True,
-            "medalhao": "Gold"
-        }
-        supabase.table("funcionarios").insert(novo_funcionario).execute()
+        # Tenta buscar se o funcionário já existe
+        response = supabase.table("funcionarios").select("*").eq("telegram_id", str(telegram_id)).execute()
+        
+        if response.data:
+            # Atualiza o existente para nível 4
+            supabase.table("funcionarios").update({"nivel_acesso": 4, "cargo": "Administrador Master"}).eq("telegram_id", str(telegram_id)).execute()
+        else:
+            # Insere um novo
+            novo_funcionario = {
+                "telegram_id": str(telegram_id),
+                "nome": telegram_name,
+                "cargo": "Administrador Master",
+                "nivel_acesso": 4,
+                "ativo": True,
+                "medalhao": "Gold"
+            }
+            supabase.table("funcionarios").insert(novo_funcionario).execute()
+            
         return True
     except Exception as e:
         print(f"Erro ao registrar master admin: {e}")
@@ -263,37 +272,7 @@ def get_usuarios_gold(nivel_acesso: int):
         print(f"Erro ao buscar usuários Gold: {e}")
         return []
 
-def atualizar_persona(funcionario_id: str, nova_persona: str) -> bool:
-    """Atualiza a persona preferida do funcionário."""
-    try:
-        response = supabase.table("funcionarios").update({"persona": nova_persona}).eq("id", funcionario_id).execute()
-        return len(response.data) > 0
-    except Exception as e:
-        print(f"Erro ao atualizar persona: {e}")
-        return False
 
-def incrementar_uso_persona(persona_nome: str):
-    """Incrementa o contador de vezes que uma persona foi selecionada no ranking."""
-    try:
-        # Busca o valor atual
-        response = supabase.table("persona_ranking").select("vezes_selecionada").eq("persona_nome", persona_nome).execute()
-        if response.data:
-            atual = response.data[0]["vezes_selecionada"]
-            supabase.table("persona_ranking").update({"vezes_selecionada": atual + 1, "ultima_selecao": "now()"}).eq("persona_nome", persona_nome).execute()
-        else:
-            # Se não existir, cria com 1
-            supabase.table("persona_ranking").insert({"persona_nome": persona_nome, "vezes_selecionada": 1}).execute()
-    except Exception as e:
-        print(f"Erro ao incrementar ranking da persona: {e}")
-
-def get_ranking_personas():
-    """Retorna o ranking de personas mais utilizadas."""
-    try:
-        response = supabase.table("persona_ranking").select("*").order("vezes_selecionada", desc=True).execute()
-        return response.data
-    except Exception as e:
-        print(f"Erro ao buscar ranking de personas: {e}")
-        return []
 
 # ==============================================================================
 # FASE 5: CATÁLOGO E ESTOQUE

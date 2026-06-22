@@ -25,9 +25,7 @@ O Adm possui um comando nativo chamado **Modo Testador**.
 - **Fase de Desenvolvimento (Regra de Ouro):** Durante a criação, os botões de ponte Web ("Produtos Cadastrados" e "Estoque") serão construídos e aprimorados **exclusivamente dentro do Modo Testador**. Somente após garantirmos que o fluxo do Telegram para a Web funciona com perfeição e sem furos de segurança, replicaremos esse acesso para os menus reais de Quiosque, Boss e Marketing. O Modo Testador manterá esses botões permanentemente como ambiente seguro (sandbox) para auditorias futuras.
 
 ## 5. Botão Personas e Ranking de Uso
-- **O Botão Personas:** No menu, há um botão chamado "Personas" que abre uma lista com 10 personalidades baseadas em personagens de franquias famosas (ex: Vegeta, Darth Vader, Deadpool). A persona padrão do sistema é o **"Piticão"**.
-- **Comportamento Direto (Zero Papo Furado):** Ao escolher uma persona, a Inteligência Artificial passa a falar no estilo do personagem, MAS sob uma regra inquebrável: ela nunca fica de "papo furado". A IA é focada unicamente em direcionar o usuário para o uso da aplicação, mantendo a produtividade intacta com um tom divertido.
-- **Ranking de Personas:** O Ranking não é voltado ao usuário, mas sim ao uso das Personas. Toda vez que uma persona é utilizada pelos usuários, ela ganha um "voto". A persona que receber mais votos fica em primeiro lugar no ranking. O objetivo dessa ferramenta é dar inteligência ao Administrador para ver quais personas a equipe mais usa e quais são ignoradas, permitindo a substituição das menos utilizadas no futuro.
+
 
 ## 6. Fluxo de Operação Principal: Cadastro em Lote (Ex: Funko)
 1. **Início:** O usuário (ex: Quiosque) seleciona a categoria "Funko Pop".

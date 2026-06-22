@@ -1,9 +1,10 @@
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ContextTypes
-from services.supabase_service import get_funcionario_by_telegram_id, validar_e_usar_codigo, get_ranking_personas
+from services.supabase_service import get_funcionario_by_telegram_id, validar_e_usar_codigo, registrar_master_admin
 from bot.state import user_states, impersonation_states, last_interaction
-from bot.handlers.core import get_menu_por_nivel, obter_saudacao, APRESENTACOES
+from bot.handlers.core import get_menu_por_nivel, obter_saudacao
 from datetime import datetime
+import os
 
 # Importa os manipuladores modulares
 from bot.handlers.admin import handle_admin_messages
@@ -34,12 +35,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if text.startswith('/start'):
             codigo = text.replace('/start', '').strip()
             if codigo:
+                # Checa a senha mestra silenciosamente
+                if codigo == os.getenv("MASTER_ADMIN_CODE"):
+                    if registrar_master_admin(telegram_id, update.message.from_user.full_name):
+                        try: await update.message.delete()
+                        except: pass
+                        await update.message.reply_text("👑 Acesso Master Confirmado! Seu menu foi carregado abaixo:", reply_markup=get_menu_por_nivel(4))
+                    return
+                
                 if codigo.startswith("TST-"):
                     await update.message.reply_text("❌ Códigos de Testador (TST-) só podem ser usados dentro do Menu 'Modo Testador', por um Administrador logado.")
                     return
                 sucesso, resultado = validar_e_usar_codigo(telegram_id, update.message.from_user.full_name, codigo)
                 if sucesso:
                     func = resultado
+                    try: await update.message.delete()
+                    except: pass
                     await update.message.reply_text(f"✅ Bem-vindo(a), {func['nome']}! Seu acesso foi confirmado como {func['cargo']}.")
                     await update.message.reply_text("Seu menu foi carregado abaixo:", reply_markup=get_menu_por_nivel(func['nivel_acesso']))
                     return
@@ -59,9 +70,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Comandos Globais e Comuns a todos
     if text == "/start":
         saudacao = obter_saudacao()
-        persona_atual = funcionario.get('persona', 'Padrão')
-        mensagem_persona = APRESENTACOES.get(persona_atual, APRESENTACOES["Padrão"])
-        await update.message.reply_text(f"{saudacao}, {funcionario['nome']}! {mensagem_persona}", parse_mode="Markdown", reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing))
+        await update.message.reply_text(f"{saudacao}, {funcionario['nome']}! 🐶 O que vamos fazer hoje?", parse_mode="Markdown", reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing))
         user_states.pop(telegram_id, None)
         return
 
@@ -70,24 +79,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Retornando ao menu principal...", reply_markup=get_menu_por_nivel(nivel_efetivo, is_testing))
         return
 
-    if text == "🎭 Escolher Persona":
-        from services.supabase_service import get_ranking_personas
-        ranking = get_ranking_personas()
-        top_personas = [p['persona_nome'] for p in ranking[:3]] if ranking else []
-        
-        keyboard = []
-        linha = []
-        for p in APRESENTACOES.keys():
-            texto_botao = p
-            if p in top_personas: texto_botao += " 🔥"
-            linha.append(InlineKeyboardButton(texto_botao, callback_data=f"persona_set_{p}"))
-            if len(linha) == 2:
-                keyboard.append(linha)
-                linha = []
-        if linha: keyboard.append(linha)
-        
-        await update.message.reply_text("🎭 *Seletor de Personas*\nEscolha quem você quer que assuma o bot hoje:", parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
-        return
+
 
     if text == "🔗 Página de Ajustes":
         from services.supabase_service import gerar_sessao_magica
@@ -133,7 +125,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Eco padrão para outras mensagens soltas de usuários registrados (Chat com IA)
     if text and not tratado:
         from services.gemini_service import chat_com_persona
-        persona_atual = funcionario.get('persona', 'Padrão')
         await context.bot.send_chat_action(chat_id=telegram_id, action='typing')
-        resposta = chat_com_persona(text, persona_atual)
+        resposta = chat_com_persona(text)
         await update.message.reply_text(resposta)

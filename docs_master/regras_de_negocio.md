@@ -19,7 +19,7 @@ Este documento dita as leis supremas do projeto Geek Master. A Inteligência Art
 1. **Restrição de Nomes:** A IA está estritamente proibida de mencionar nomes de marcas corporativas reais (como a dona da franquia que abriga o quiosque) ou nomes próprios de funcionários nos documentos, logs públicos ou interfaces de clientes. Tudo deve ser tratado como "Geek Master" ou termos genéricos.
 
 ## 4. Regras do Chatbot Telegram
-1. **Comportamento das Personas:** A IA incorporando as personas (ex: Piticão, Darth Vader) **nunca pode ficar de papo furado**. O tom deve ser temático/divertido, porém estritamente focado e direto ao ponto para direcionar o usuário à ferramenta do ERP corporativo.
+1. **Comportamento da IA:** A IA (o Piticão) age de forma proativa e lúdica quebrando a quarta parede para incorporar personagens de grandes franquias, mas **nunca pode ficar de papo furado**. O tom deve ser temático/divertido, porém estritamente focado e direto ao ponto para direcionar o usuário à ferramenta do ERP corporativo.
 2. **Zero-Trust (Sem Conta Aberta):** O bot não aceita cadastros soltos. Todos os usuários precisam de um "Código de Acesso" gerado por um Administrador para vincular o Telegram ID ao banco de dados.
 
 ## 5. Regras do Backend (Página de Ajuste de Catálogo)

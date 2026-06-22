@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS public.funcionarios (
     ativo BOOLEAN DEFAULT true,
     medalhao TEXT DEFAULT 'Bronze',
     perfis_teste JSONB DEFAULT '[]'::jsonb,
-    persona TEXT,
+
     criado_em TIMESTAMPTZ DEFAULT NOW(),
     atualizado_em TIMESTAMPTZ DEFAULT NOW()
 );
@@ -141,12 +141,7 @@ CREATE TABLE IF NOT EXISTS public.notificacoes_bot (
     criado_em TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public.persona_ranking (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    persona_nome TEXT UNIQUE NOT NULL,
-    vezes_selecionada INTEGER DEFAULT 0,
-    ultima_selecao TIMESTAMPTZ DEFAULT NOW()
-);
+
 
 CREATE TABLE IF NOT EXISTS public.lista_desejos (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
