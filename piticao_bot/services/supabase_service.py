@@ -44,12 +44,12 @@ def validar_e_usar_codigo(telegram_id: str, telegram_name: str, codigo: str):
         codigo_db = response.data[0]
         
         # 2. Verificar expiração
-        expira_em_str = codigo_db["expira_em"]
-        expira_em = datetime.fromisoformat(expira_em_str.replace("Z", "+00:00"))
-        
-        if datetime.now(expira_em.tzinfo) > expira_em:
-            return False, "❌ Este código de acesso expirou. Solicite um novo ao seu gestor."
+        expira_em_str = codigo_db.get("expira_em")
+        if expira_em_str:
+            expira_em = datetime.fromisoformat(expira_em_str.replace("Z", "+00:00"))
             
+            if datetime.now(expira_em.tzinfo) > expira_em:
+                return False, "⏳ Este código de acesso expirou. Solicite um novo ao seu gestor."
         nivel = codigo_db["nivel_acesso"]
         
         # 3. Registrar o funcionário
@@ -74,7 +74,7 @@ def validar_e_usar_codigo(telegram_id: str, telegram_name: str, codigo: str):
         # 4. Marcar o código como usado
         supabase.table("codigos_acesso").update({"usado": True}).eq("id", codigo_db["id"]).execute()
         
-        return True, f"✅ Cadastro realizado com sucesso!\nVocê foi registrado como: **{nome_final}**\nCargo: **{cargo}**"
+        return True, novo_funcionario
     except Exception as e:
         print(f"Erro ao usar código de acesso: {e}")
         return False, "❌ Erro interno ao validar o código."

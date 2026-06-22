@@ -37,13 +37,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if codigo.startswith("TST-"):
                     await update.message.reply_text("❌ Códigos de Testador (TST-) só podem ser usados dentro do Menu 'Modo Testador', por um Administrador logado.")
                     return
-                func = validar_e_usar_codigo(telegram_id, update.message.from_user.full_name, codigo)
-                if func:
-                    await update.message.reply_text(f"✅ Bem-vindo(a), {func['nome']}! Seu acesso foi confirmado.")
+                sucesso, resultado = validar_e_usar_codigo(telegram_id, update.message.from_user.full_name, codigo)
+                if sucesso:
+                    func = resultado
+                    await update.message.reply_text(f"✅ Bem-vindo(a), {func['nome']}! Seu acesso foi confirmado como {func['cargo']}.")
                     await update.message.reply_text("Seu menu foi carregado abaixo:", reply_markup=get_menu_por_nivel(func['nivel_acesso']))
                     return
                 else:
-                    await update.message.reply_text("❌ Código inválido, expirado ou já utilizado. Peça um novo código ao Administrador.")
+                    await update.message.reply_text(resultado)
                     return
         await update.message.reply_text("Olá! Eu sou o Piticão 🐶, o mascote oficial da Geek Master.\nPara acessar o sistema, peça ao seu Administrador para gerar um código de acesso.\n\nSe já tiver um código, use o link que ele te mandou ou digite `/start SEU_CODIGO`.")
         return

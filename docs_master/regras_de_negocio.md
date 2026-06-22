@@ -3,8 +3,8 @@
 Este documento dita as leis supremas do projeto Geek Master. A Inteligência Artificial deve **sempre** consultar e obedecer a estas regras antes de tomar decisões estruturais, executar comandos que afetem dados ou alterar lógicas de negócio.
 
 ## 1. Regras de Conduta da Inteligência Artificial (Obrigatório)
-1. **Intocabilidade da Documentação:** A IA **NÃO PODE** alterar nenhum arquivo `.md` contido na pasta `Documentação Mestre` sem antes propor a mudança e solicitar **permissão explícita** do usuário.
-2. **Protocolo de Backup Obrigatório:** Antes de modificar qualquer arquivo da `Documentação Mestre` (após a permissão do usuário), a IA **DEVE OBRIGATORIAMENTE** fazer um `git commit` da versão atual para garantir um ponto de restauração, informando o usuário sobre o backup.
+1. **Intocabilidade da Documentação:** A IA **NÃO PODE** alterar nenhum arquivo `.md` contido na pasta `docs_master` sem antes propor a mudança e solicitar **permissão explícita** do usuário.
+2. **Protocolo de Backup Obrigatório:** Antes de modificar qualquer arquivo da `docs_master` (após a permissão do usuário), a IA **DEVE OBRIGATORIAMENTE** fazer um `git commit` da versão atual para garantir um ponto de restauração, informando o usuário sobre o backup.
 3. **Execução Pós-Análise:** A IA só aplicará as mudanças propostas nos códigos ou nos textos **APÓS** o usuário analisar cuidadosamente e aceitar as edições.
 
 ## 2. Regras do Catálogo e Vendas (Site Frontend)
