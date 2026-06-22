@@ -37,5 +37,5 @@ O Adm possui um comando nativo chamado **Modo Testador**.
 1. **Início:** O usuário (ex: Quiosque) seleciona a categoria "Funko Pop".
 2. **Batch (Lote de Imagens):** O usuário pode tirar 10 fotos seguidas de 10 Funkos diferentes e enviar de uma vez.
 3. **Processamento em Massa:** O bot entra no modo lote e avisa *"Analisando o lote de produtos"*. A Inteligência Artificial (Gemini Vision) lê embalagem por embalagem, extraindo **Nome, Franquia e Número**.
-4. **Acionamento do Scraper:** O bot empurra a lista para background. O Scraper entra em ação e busca as fotos oficiais e preços **exclusivamente no site oficial `funko.com.br`** (Single Source of Truth).
+4. **Acionamento do Clone:** O bot empurra a lista para background. O sistema interno busca as fotos oficiais e preços **exclusivamente no banco de dados clonado** dos sites oficiais (`piticas`, `zonacriativa`, `mocadopop`).
 5. **Aviso Final:** O bot descarrega tudo no banco de dados como `PENDENTE` e avisa *"Já cadastrei todos eles"*, retornando o usuário ao menu principal, sem travar o chat do Telegram em nenhum momento.
