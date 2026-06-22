@@ -105,7 +105,7 @@ export default function Home() {
             <div className="text-white text-center md:text-left">
               <span className="bg-yellow-400 text-dark font-black px-3 py-1 rounded-full text-xs tracking-wider uppercase mb-4 inline-block">Lançamento</span>
               <h2 className="text-4xl md:text-5xl font-black mb-3">Toy Story 5</h2>
-              <p className="text-lg md:text-xl text-blue-200 font-medium mb-6 max-w-md">Ao infinito e além... A nova coleção exclusiva de Funkos já aterrissou na Master Geek!</p>
+              <p className="text-lg md:text-xl text-blue-200 font-medium mb-6 max-w-md">Ao infinito e além... A nova coleção exclusiva de Funkos já aterrissou na Geek Master!</p>
               <button className="bg-white text-dark font-bold px-8 py-3 rounded-full hover:bg-yellow-400 hover:text-dark transition-colors shadow-lg">Ver Coleção</button>
             </div>
             {/* Foto de destaque no banner (Jessie Funko) */}

@@ -1,111 +1,94 @@
 import requests
-from playwright.sync_api import sync_playwright
-from services.supabase_service import upload_image_to_storage
 import urllib.parse
-import re
 from bs4 import BeautifulSoup
 import json
+from services.supabase_service import upload_image_to_storage
+from services.gemini_service import gerar_dados_produto
 
 def scrape_funko_product(query: str):
     """
-    Busca um produto no site funko.com.br via Playwright e raspa os dados reais.
-    Retorna o Nome, Preço, Imagem URL (upada no Supabase) e Descrição.
-    Caso falhe (timeout ou produto não encontrado), retorna valores de fallback com imagem vazia.
+    Busca um produto na internet e raspa os dados reais.
+    Como a Funko bloqueia bots ativamente (VTEX), usamos uma abordagem híbrida:
+    1. Obtemos Imagem via Bing Search.
+    2. Obtemos Descrição e Preço sugerido via Gemini AI.
     """
     query_encoded = urllib.parse.quote(query.lower())
-    search_url = f"https://funko.com.br/busca?q={query_encoded}"
     
-    # Valores de Fallback (Caso o scraper falhe ou não encontre nada)
+    # Valores Iniciais
     result = {
         "nome": f"FUNKO POP {query.upper()}",
-        "is_new": False,
         "preco_base": 0.0,
-        "imagem_url": "",
-        "imagens_galeria": [],
-        "descricao": "Produto em análise. Scraper não conseguiu extrair a descrição completa."
+        "imagem_url": None,
+        "descricao": "Produto de colecionador."
     }
-    
+
+    # 0. BUSCA NO CATÁLOGO MESTRE (Prioridade Máxima)
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            )
-            page = context.new_page()
-            
-            print(f"[Scraper] Buscando em: {search_url}")
-            page.goto(search_url, wait_until="domcontentloaded")
-            
-            # Tentar achar o primeiro produto da lista (VTEX classes)
-            # Como a estrutura pode variar ou ter anti-bot, usamos timeout reduzido
-            try:
-                page.wait_for_selector('.vtex-product-summary-2-x-clearLink', timeout=8000)
-                first_product_href = page.locator('.vtex-product-summary-2-x-clearLink').first.get_attribute('href')
-                
-                if first_product_href:
-                    product_url = f"https://funko.com.br{first_product_href}"
-                    print(f"[Scraper] Produto encontrado, navegando para: {product_url}")
-                    page.goto(product_url, wait_until="domcontentloaded")
-                    
-                    # Extrair informações da página de produto
-                    page.wait_for_selector('.vtex-store-components-3-x-productBrand', timeout=8000)
-                    
-                    nome = page.locator('.vtex-store-components-3-x-productBrand').text_content().strip()
-                    if nome:
-                        result["nome"] = nome
-                    
-                    # Preço
-                    try:
-                        preco_str = page.locator('.vtex-product-price-1-x-currencyContainer').first.text_content().strip()
-                        # Limpar "R$ 149,99" -> 149.99
-                        preco_limpo = re.sub(r'[^\d,]', '', preco_str).replace(',', '.')
-                        result["preco_base"] = float(preco_limpo)
-                    except Exception as e:
-                        print(f"[Scraper] Erro ao extrair preço: {e}")
-                    
-                    # Imagem Principal
-                    try:
-                        img_src = page.locator('.vtex-store-components-3-x-productImageTag').first.get_attribute('src')
-                        if img_src:
-                            result["imagem_url"] = img_src
-                    except Exception as e:
-                        print(f"[Scraper] Erro ao extrair imagem: {e}")
-                        
-                    # Descrição
-                    try:
-                        desc = page.locator('.vtex-store-components-3-x-productDescriptionText').text_content().strip()
-                        if desc:
-                            result["descricao"] = desc
-                    except Exception as e:
-                        pass
-            except Exception as e:
-                print(f"[Scraper] Falha ao encontrar o produto na busca ou anti-bot bloqueou: {e}")
-                print(f"[Scraper] Acionando Solução Alternativa de Imagens (Bing API Fallback)...")
-                try:
-                    query_bing = urllib.parse.quote(f"Funko Pop {query} original na caixa")
-                    bing_url = f'https://www.bing.com/images/search?q={query_bing}'
-                    r_bing = requests.get(bing_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
-                    
-                    if r_bing.status_code == 200:
-                        soup_bing = BeautifulSoup(r_bing.text, 'html.parser')
-                        for a in soup_bing.find_all('a', class_='iusc'):
-                            m = a.get('m')
-                            if m:
-                                data = json.loads(m)
-                                if data.get('murl'):
-                                    img_fallback = data['murl']
-                                    result["imagem_url"] = img_fallback
-                                    print(f"[Scraper] Imagem Fallback encontrada: {img_fallback}")
-                                    break
-                except Exception as ex_bing:
-                    print(f"[Scraper] Bing Fallback também falhou: {ex_bing}")
-                    
-            finally:
-                browser.close()
-                
-    except Exception as e:
-        print(f"[Scraper] Erro fatal no Playwright: {e}")
+        query_formatada = query.replace(" ", " & ") # tsquery simple formatting or just ilike
+        # Para simplificar, buscamos por partes do nome
+        palavras = query.split(" ")
         
+        # Construindo uma busca ILIKE simples para a primeira palavra chave
+        palavra_chave = palavras[0]
+        if len(palavras) > 1 and palavra_chave.lower() == "jessie":
+            palavra_chave = "jessie" # Exemplo: buscar Jessie
+            
+        # Vamos fazer um ILIKE com as duas primeiras palavras
+        termo_busca = f"%{palavras[0]}%"
+        if len(palavras) > 1:
+            termo_busca = f"%{palavras[0]}%{palavras[1]}%"
+
+        from services.supabase_service import supabase
+        resp = supabase.table("catalogo_fornecedores").select("*").ilike("nome", termo_busca).execute()
+        
+        if resp.data:
+            item = resp.data[0]
+            print(f"[Scraper] Produto encontrado no Catálogo Mestre: {item['nome']}")
+            result["nome"] = item["nome"]
+            result["preco_base"] = float(item["preco"]) if item.get("preco") else 0.0
+            result["imagem_url"] = item.get("imagem_url")
+            result["descricao"] = item.get("descricao") or result["descricao"]
+            return result
+    except Exception as e:
+        print(f"[Scraper] Erro ao buscar no Catálogo Mestre: {e}")
+    
+    print(f"[Scraper] Buscando imagem para: {query}")
+    
+    # Busca de Imagem (Bing Fallback melhorado)
+    try:
+        query_bing = urllib.parse.quote(f"funko pop {query} original caixa")
+        bing_url = f'https://www.bing.com/images/search?q={query_bing}'
+        r_bing = requests.get(bing_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+        
+        if r_bing.status_code == 200:
+            soup_bing = BeautifulSoup(r_bing.text, 'html.parser')
+            for a in soup_bing.find_all('a', class_='iusc'):
+                m = a.get('m')
+                if m:
+                    data = json.loads(m)
+                    if data.get('murl'):
+                        img_fallback = data['murl']
+                        # Evitar pegar icones ou coisas não relacionadas
+                        if ".png" not in img_fallback and "icon" not in img_fallback.lower():
+                            result["imagem_url"] = img_fallback
+                            print(f"[Scraper] Imagem encontrada: {img_fallback}")
+                            break
+    except Exception as ex_bing:
+        print(f"[Scraper] Bing Image Search falhou: {ex_bing}")
+
+    print(f"[Scraper] Buscando informações de preço e descrição via IA para: {query}")
+    # Busca de Descrição e Preço via Gemini
+    try:
+        dados_json = gerar_dados_produto(query)
+        limpo = dados_json.replace("```json", "").replace("```", "").strip()
+        dados = json.loads(limpo)
+        if "preco_base" in dados:
+            result["preco_base"] = float(dados["preco_base"])
+        if "descricao" in dados:
+            result["descricao"] = str(dados["descricao"])
+    except Exception as e:
+        print(f"[Scraper] Erro ao extrair dados da IA: {e}")
+
     # Fase 2: Download da imagem e Upload para o Supabase Storage (Bucket: imagens_produtos)
     def download_and_upload(url, name_suffix):
         if not url:

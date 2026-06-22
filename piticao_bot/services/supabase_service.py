@@ -385,24 +385,6 @@ def salvar_produto(produto_data: dict) -> bool:
         print(f"Erro ao salvar produto: {e}")
         return False
 
-def buscar_produto_por_ean(ean: str):
-    try:
-        response = supabase.table("produtos").select("*").eq("ean", ean).execute()
-        if response.data:
-            return response.data[0]
-        return None
-    except Exception as e:
-        print(f"Erro ao buscar produto por ean: {e}")
-        return None
-
-def buscar_encomendas_pendentes(quiosque_id: str):
-    try:
-        response = supabase.table("encomendas").select("*").eq("quiosque_id", quiosque_id).in_("status", ["PENDENTE", "PRONTO_RETIRADA"]).execute()
-        return response.data
-    except Exception as e:
-        print(f"Erro ao buscar encomendas pendentes: {e}")
-        return []
-
 def atualizar_encomenda_status(encomenda_id: str, novo_status: str):
     try:
         supabase.table("encomendas").update({"status": novo_status, "atualizado_em": datetime.utcnow().isoformat()}).eq("id", encomenda_id).execute()
@@ -424,41 +406,13 @@ def adicionar_perfil_teste(funcionario_id: str, nivel_teste: int):
         print(f"Erro ao adicionar perfil teste: {e}")
         return False
 
-def validar_codigo_teste(codigo: str):
-    """Verifica se o código de teste é válido e retorna o nível de acesso do perfil simulado."""
-    try:
-        response = supabase.table("codigos_acesso").select("*").eq("codigo", codigo).eq("usado", False).execute()
-        if not response.data:
-            return None
-            
-        cod = response.data[0]
-        # Códigos de teste não são marcados como 'usados' para permitir testes repetidos, 
-        # mas expiram de qualquer forma após 30 mins
-        
-        return cod['nivel_acesso']
-    except Exception as e:
-        print(f"Erro ao validar código teste: {e}")
-        return None
+
 
 # ==============================================================================
 # ESTOQUE TESTE
 # ==============================================================================
 
-def upload_imagem_produto(file_bytes: bytes, file_name: str) -> str:
-    """Faz upload da imagem para o Supabase Storage e retorna a URL pública."""
-    try:
-        # Nome único para evitar cache/conflitos
-        ext = file_name.split('.')[-1]
-        unique_name = f"{uuid.uuid4().hex}.{ext}"
-        
-        res = supabase.storage.from_("produtos").upload(unique_name, file_bytes, {"content-type": f"image/{ext}"})
-        if res:
-            # Retornar a URL pública
-            return f"{URL}/storage/v1/object/public/produtos/{unique_name}"
-        return None
-    except Exception as e:
-        print(f"Erro no upload da imagem: {e}")
-        return None
+
 
 def adicionar_produto_teste(nome: str, franquia: str, preco: float, url_imagem: str = None):
     """Insere um produto de teste na tabela produtos."""
@@ -523,4 +477,46 @@ def excluir_produto_teste(produto_id: str):
     except Exception as e:
         print(f"Erro ao excluir produto teste: {e}")
         return False
+
+# ==============================================================================
+# FASE 6: PONTE BOT-REACT (SESSÕES E NOTIFICAÇÕES)
+# ==============================================================================
+
+def gerar_sessao_magica(telegram_id: str, nivel_acesso: int) -> str:
+    """
+    Gera uma sessão mágica descartável para o login sem senha no React.
+    Retorna o token gerado.
+    """
+    try:
+        data = {
+            "telegram_id": str(telegram_id),
+            "nivel_acesso": nivel_acesso
+        }
+        # O banco já gera o UUID e a data de criação por padrão
+        response = supabase.table("sessoes_magicas").insert(data).execute()
+        if response.data:
+            return response.data[0]["token"]
+        return None
+    except Exception as e:
+        print(f"Erro ao gerar sessão mágica: {e}")
+        return None
+
+def buscar_notificacoes_nao_lidas():
+    """Busca notificações da tabela notificacoes_bot que ainda não foram lidas."""
+    try:
+        response = supabase.table("notificacoes_bot").select("*").eq("lido", False).order("criado_em", desc=False).execute()
+        return response.data
+    except Exception as e:
+        print(f"Erro ao buscar notificações não lidas: {e}")
+        return []
+
+def marcar_notificacao_lida(notificacao_id: int):
+    """Marca a notificação como lida para não enviar duas vezes."""
+    try:
+        supabase.table("notificacoes_bot").update({"lido": True}).eq("id", notificacao_id).execute()
+        return True
+    except Exception as e:
+        print(f"Erro ao marcar notificação como lida: {e}")
+        return False
+
 

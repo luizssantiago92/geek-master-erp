@@ -1,6 +1,6 @@
 # Regras de Negócio e Restrições do Sistema (Obrigatório)
 
-Este documento dita as leis supremas do projeto Master Geek. A Inteligência Artificial deve **sempre** consultar e obedecer a estas regras antes de tomar decisões estruturais, executar comandos que afetem dados ou alterar lógicas de negócio.
+Este documento dita as leis supremas do projeto Geek Master. A Inteligência Artificial deve **sempre** consultar e obedecer a estas regras antes de tomar decisões estruturais, executar comandos que afetem dados ou alterar lógicas de negócio.
 
 ## 1. Regras de Conduta da Inteligência Artificial (Obrigatório)
 1. **Intocabilidade da Documentação:** A IA **NÃO PODE** alterar nenhum arquivo `.md` contido na pasta `Documentação Mestre` sem antes propor a mudança e solicitar **permissão explícita** do usuário.
@@ -16,7 +16,7 @@ Este documento dita as leis supremas do projeto Master Geek. A Inteligência Art
    - Valor mínimo da parcela é de **R$ 60,00**. *(Exemplo: Para parcelar em 2x, a compra mínima deve ser de R$ 120,00).*
 
 ## 3. Regras de Privacidade e Imagem
-1. **Restrição de Nomes:** A IA está estritamente proibida de mencionar nomes de marcas corporativas reais (como a dona da franquia que abriga o quiosque) ou nomes próprios de funcionários nos documentos, logs públicos ou interfaces de clientes. Tudo deve ser tratado como "Master Geek" ou termos genéricos.
+1. **Restrição de Nomes:** A IA está estritamente proibida de mencionar nomes de marcas corporativas reais (como a dona da franquia que abriga o quiosque) ou nomes próprios de funcionários nos documentos, logs públicos ou interfaces de clientes. Tudo deve ser tratado como "Geek Master" ou termos genéricos.
 
 ## 4. Regras do Chatbot Telegram
 1. **Comportamento das Personas:** A IA incorporando as personas (ex: Piticão, Darth Vader) **nunca pode ficar de papo furado**. O tom deve ser temático/divertido, porém estritamente focado e direto ao ponto para direcionar o usuário à ferramenta do ERP corporativo.

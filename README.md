@@ -16,7 +16,7 @@ A plataforma se divide em três frentes principais:
 O repositório é um "monorepo", contendo múltiplas aplicações no mesmo lugar.
 
 - `/piticao_bot/`: Código fonte do Piticão, o bot corporativo do Telegram feito em Python (`python-telegram-bot`).
-- `/master_geek_web/`: Aplicação Web desenvolvida em Next.js (React) + TailwindCSS.
+- `/web_app/`: Aplicação Web desenvolvida em Next.js (React) + TailwindCSS.
 - `/*.sql`: Scripts de migração e estrutura do banco de dados relacional.
 - `/*.md`: Documentação auxiliar, Requisitos do Produto (PRD) e Schemas.
 
@@ -57,7 +57,7 @@ python main.py
 A plataforma Web atende clientes (Vitrine/Onboarding) e Gestores (Admin Dashboard).
 
 ```bash
-cd master_geek_web
+cd web_app
 # Instale as dependências Node
 npm install
 # Inicie o servidor de desenvolvimento

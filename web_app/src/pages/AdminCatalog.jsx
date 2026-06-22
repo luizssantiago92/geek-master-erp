@@ -1,16 +1,79 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Settings, Save, CheckCircle, Clock } from 'lucide-react';
+import { Settings, Save, CheckCircle, Clock, AlertTriangle, Send } from 'lucide-react';
 
 export default function AdminCatalog() {
   const [produtos, setProdutos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [session, setSession] = useState(null);
+  const [authError, setAuthError] = useState('');
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
-  // Busca inicial dos produtos
+  // Verifica Autenticação Mágica
   useEffect(() => {
-    fetchProdutos();
+    checkMagicLink();
   }, []);
+
+  async function checkMagicLink() {
+    try {
+      const token = searchParams.get('token');
+      
+      if (token) {
+        setLoading(true);
+        // Validar Token no banco
+        const { data, error } = await supabase
+          .from('sessoes_magicas')
+          .select('*')
+          .eq('token', token)
+          .single();
+
+        if (error || !data) {
+          setAuthError('Token inválido ou não encontrado.');
+        } else if (data.usado) {
+          setAuthError('Este link já foi utilizado. Gere um novo no Bot.');
+        } else {
+          // Token válido, "queimar" o token e salvar sessão
+          await supabase.from('sessoes_magicas').update({ usado: true }).eq('token', token);
+          
+          const sessionData = {
+            telegram_id: data.telegram_id,
+            nivel_acesso: data.nivel_acesso,
+            expires: new Date().getTime() + 1000 * 60 * 60 * 24 // 24 horas
+          };
+          localStorage.setItem('adminSession', JSON.stringify(sessionData));
+          setSession(sessionData);
+          
+          // Limpa a URL
+          navigate('/admin', { replace: true });
+        }
+      } else {
+        // Sem token na URL, verificar localStorage
+        const cached = localStorage.getItem('adminSession');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.expires > new Date().getTime()) {
+            setSession(parsed);
+          } else {
+            localStorage.removeItem('adminSession');
+            setAuthError('Sua sessão expirou. Gere um novo link no Bot.');
+          }
+        } else {
+          setAuthError('Acesso Restrito. Por favor, solicite um Link de Acesso através do Bot no Telegram.');
+        }
+      }
+    } catch (err) {
+      setAuthError('Erro na autenticação.');
+    } finally {
+      if (!authError) {
+        fetchProdutos();
+      } else {
+        setLoading(false);
+      }
+    }
+  }
 
   async function fetchProdutos() {
     setLoading(true);
@@ -51,28 +114,53 @@ export default function AdminCatalog() {
     }
   };
 
-  // Mudar status para PUBLICADO (enviar para o site)
+  // Mudar status para PUBLICADO (Admin) ou Solicitar Publicação (Outros)
   const handlePublish = async (produto) => {
+    if (!session) return;
+    
     try {
-      const novoStatus = produto.status_publicacao === 'PUBLICADO' ? 'PENDENTE' : 'PUBLICADO';
-      const { error } = await supabase
-        .from('produtos')
-        .update({ status_publicacao: novoStatus })
-        .eq('id', produto.id);
+      if (session.nivel_acesso >= 4) {
+        // ADMIN PUBLICA DIRETO
+        const novoStatus = produto.status_publicacao === 'PUBLICADO' ? 'PENDENTE' : 'PUBLICADO';
+        const { error } = await supabase
+          .from('produtos')
+          .update({ status_publicacao: novoStatus })
+          .eq('id', produto.id);
 
-      if (error) throw error;
-      
-      // Atualiza o estado local
-      setProdutos(prev => prev.map(p => p.id === produto.id ? { ...p, status_publicacao: novoStatus } : p));
-      
-      if (novoStatus === 'PUBLICADO') {
-        alert('Produto ENVIADO para o site principal com sucesso!');
+        if (error) throw error;
+        
+        setProdutos(prev => prev.map(p => p.id === produto.id ? { ...p, status_publicacao: novoStatus } : p));
+        if (novoStatus === 'PUBLICADO') {
+          alert('Produto ENVIADO para o site principal com sucesso!');
+        } else {
+          alert('Produto RECOLHIDO do site (agora está Pendente).');
+        }
       } else {
-        alert('Produto RECOLHIDO do site (agora está Pendente).');
+        // GESTORES/MARKETING: Apenas solicitam
+        if (produto.status_publicacao === 'AGUARDANDO_APROVACAO') {
+          alert('Este produto já está aguardando aprovação do Admin.');
+          return;
+        }
+
+        const { error } = await supabase
+          .from('produtos')
+          .update({ status_publicacao: 'AGUARDANDO_APROVACAO' })
+          .eq('id', produto.id);
+
+        if (error) throw error;
+
+        // Inserir notificação para o Bot
+        await supabase.from('notificacoes_bot').insert({
+          mensagem: `Um gestor solicitou a publicação do produto *${produto.nome}* no painel web. Acesse para conferir e aprovar.`,
+          lido: false
+        });
+
+        setProdutos(prev => prev.map(p => p.id === produto.id ? { ...p, status_publicacao: 'AGUARDANDO_APROVACAO' } : p));
+        alert('Solicitação de publicação enviada ao Administrador!');
       }
     } catch (err) {
       console.error(err);
-      alert('Erro ao mudar status do produto.');
+      alert('Erro ao processar publicação.');
     }
   };
 
@@ -131,7 +219,19 @@ export default function AdminCatalog() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Carregando catálogo admin...</div>;
+  if (authError) {
+    return (
+      <div className="container mx-auto px-4 py-20 max-w-2xl text-center">
+        <div className="bg-red-50 text-red-600 p-8 rounded-xl border-2 border-red-200">
+          <AlertTriangle size={64} className="mx-auto mb-4" />
+          <h2 className="text-2xl font-black mb-2">Acesso Restrito</h2>
+          <p className="font-medium">{authError}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading || !session) return <div className="p-8 text-center text-gray-500 animate-pulse font-bold">Autenticando & Carregando Catálogo Seguro...</div>;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -261,12 +361,22 @@ export default function AdminCatalog() {
                 <Save size={16} /> Salvar Edição
               </button>
               
-              <button 
-                onClick={() => handlePublish(p)}
-                className={`w-full text-white font-bold py-3 px-4 rounded flex items-center justify-center gap-2 transition-colors shadow-sm ${p.status_publicacao === 'PUBLICADO' ? 'bg-red-500 hover:bg-red-600' : 'bg-primary hover:bg-orange-600'}`}
-              >
-                {p.status_publicacao === 'PUBLICADO' ? 'Ocultar do Site' : 'Enviar para o Site'}
-              </button>
+              {session?.nivel_acesso >= 4 ? (
+                <button 
+                  onClick={() => handlePublish(p)}
+                  className={`w-full text-white font-bold py-3 px-4 rounded flex items-center justify-center gap-2 transition-colors shadow-sm ${p.status_publicacao === 'PUBLICADO' ? 'bg-red-500 hover:bg-red-600' : 'bg-primary hover:bg-orange-600'}`}
+                >
+                  {p.status_publicacao === 'PUBLICADO' ? 'Ocultar do Site' : 'Enviar para o Site'}
+                </button>
+              ) : (
+                <button 
+                  onClick={() => handlePublish(p)}
+                  disabled={p.status_publicacao === 'PUBLICADO' || p.status_publicacao === 'AGUARDANDO_APROVACAO'}
+                  className={`w-full text-white font-bold py-3 px-4 rounded flex items-center justify-center gap-2 transition-colors shadow-sm ${p.status_publicacao === 'PUBLICADO' || p.status_publicacao === 'AGUARDANDO_APROVACAO' ? 'bg-gray-400 cursor-not-allowed' : 'bg-yellow-500 hover:bg-yellow-600'}`}
+                >
+                  <Send size={16} /> {p.status_publicacao === 'AGUARDANDO_APROVACAO' ? 'Aprovação Pendente' : (p.status_publicacao === 'PUBLICADO' ? 'Publicado' : 'Solicitar Publicação')}
+                </button>
+              )}
             </div>
 
           </div>

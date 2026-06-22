@@ -154,3 +154,25 @@ def chat_com_persona(texto_usuario: str, persona: str) -> str:
         return response.text.strip()
     except Exception as e:
         return f"Falha de comunicação: {e}"
+
+def gerar_dados_produto(nome: str):
+    """
+    Usa o Gemini para preencher lacunas de produtos que nao puderam ser raspados.
+    Gera um preco base realista em reais (float) e uma descricao criativa de e-commerce.
+    """
+    if not GEMINI_API_KEY: return '{"preco_base": 149.90, "descricao": "Produto colecionavel oficial. Detalhes indisponiveis no momento."}'
+    try:
+        import google.generativeai as genai
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        prompt = (
+            f"Voce e um especialista em Funko Pops e e-commerce de cultura geek. "
+            f"Eu tenho este produto: '{nome}'. "
+            f"Gere um preco base realista de mercado brasileiro atual (em reais, como float) e uma descricao envolvente para a pagina de vendas deste produto. "
+            f"Retorne APENAS um JSON valido com as chaves 'preco_base' (float) e 'descricao' (string longa). "
+            f"Nao use crases ou a palavra json."
+        )
+        resp = model.generate_content(prompt)
+        return resp.text.strip()
+    except Exception as e:
+        print(f"Erro no gerar_dados_produto: {e}")
+        return '{"preco_base": 149.90, "descricao": "Produto colecionavel."}'
