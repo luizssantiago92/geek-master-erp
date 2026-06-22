@@ -16,9 +16,8 @@ A plataforma se divide em três frentes principais:
 O repositório é um "monorepo", contendo múltiplas aplicações no mesmo lugar.
 
 - `/piticao_bot/`: Código fonte do Piticão, o bot corporativo do Telegram feito em Python (`python-telegram-bot`).
-- `/web_app/`: Aplicação Web desenvolvida em Next.js (React) + TailwindCSS.
-- `/*.sql`: Scripts de migração e estrutura do banco de dados relacional.
-- `/*.md`: Documentação auxiliar, Requisitos do Produto (PRD) e Schemas.
+- `/web_app/`: Aplicação Web desenvolvida em React, Vite e TailwindCSS.
+- `/docs_master/`: Fonte Única de Verdade (Single Source of Truth) contendo toda a documentação auxiliar, PRDs e scripts de migração do banco de dados (`.sql`).
 
 ---
 
@@ -53,7 +52,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-### 3. Rodando o Front-end Web (Next.js)
+### 3. Rodando o Front-end Web (React/Vite)
 A plataforma Web atende clientes (Vitrine/Onboarding) e Gestores (Admin Dashboard).
 
 ```bash
@@ -69,10 +68,10 @@ Acesse `http://localhost:3000` no seu navegador.
 
 ## 🛠️ Tecnologias Utilizadas
 
-- **Front-end:** Next.js 15, React, TailwindCSS, Lucide Icons.
-- **Bot:** Python 3, `python-telegram-bot`, Google Generative AI (Gemini 2.5).
+- **Front-end:** React, Vite, TailwindCSS, Lucide Icons.
+- **Bot:** Python 3, `python-telegram-bot`, Google Generative AI (Gemini 1.5 Flash).
 - **Backend/Database:** Supabase (PostgreSQL), Supabase Auth.
-- **Comunicação Cliente:** Integração híbrida de WhatsApp (API Oficial 1:1 e WebSocket para automação de Comunidades VIP).
+- **Comunicação Cliente:** *(Fase 2 - Em Breve)* Integração híbrida de WhatsApp (API Oficial 1:1 e WebSocket para automação de Comunidades VIP).
 
 ---
 
