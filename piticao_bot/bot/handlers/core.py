@@ -37,8 +37,7 @@ def get_menu_por_nivel(nivel: int, is_testing: bool = False) -> ReplyKeyboardMar
         ]
     elif nivel == 4:
         keyboard = [
-            ["👑 Modo Boss (Em breve)", "🧑‍💻 Modo Testador"],
-            ["⚙️ Sistema"]
+            ["🧑‍💻 Modo Testador", "⚙️ Sistema"]
         ]
     else:
         keyboard = [["/start"]]

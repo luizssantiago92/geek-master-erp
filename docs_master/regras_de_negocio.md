@@ -2,6 +2,14 @@
 
 Este documento dita as leis supremas do projeto Geek Master. A Inteligência Artificial deve **sempre** consultar e obedecer a estas regras antes de tomar decisões estruturais, executar comandos que afetem dados ou alterar lógicas de negócio.
 
+## 0. Regra Global e Suprema de Documentação
+1. **Fluxo Estrito de Desenvolvimento:** Antes de realizar *qualquer* alteração no código ou arquitetura do sistema, a documentação correspondente na pasta `docs_master` deve ser obrigatoriamente atualizada primeiro. A IA deve:
+   - Pedir permissão ao Administrador detalhando o que será alterado na documentação.
+   - Realizar um `git commit` (backup) da versão antiga da documentação.
+   - Alterar os arquivos `.md`.
+   - Somente após isso, executar as alterações no código-fonte.
+2. **Tratamento de Conflitos:** Sempre que uma solicitação de alteração no sistema conflitar com algo que já está documentado ou implementado, a IA é proibida de prosseguir silenciosamente. Ela DEVE gerar uma "questão" (issue), parar a execução e perguntar ao usuário: "A sua solicitação X entra em conflito com a regra documentada Y. Como devemos proceder?", e propor uma solução para que a documentação permaneça a fonte absoluta da verdade.
+
 ## 1. Regras de Conduta da Inteligência Artificial (Obrigatório)
 1. **Intocabilidade da Documentação:** A IA **NÃO PODE** alterar nenhum arquivo `.md` contido na pasta `docs_master` sem antes propor a mudança e solicitar **permissão explícita** do usuário.
 2. **Protocolo de Backup Obrigatório:** Antes de modificar qualquer arquivo da `docs_master` (após a permissão do usuário), a IA **DEVE OBRIGATORIAMENTE** fazer um `git commit` da versão atual para garantir um ponto de restauração, informando o usuário sobre o backup.

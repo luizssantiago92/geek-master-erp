@@ -1,32 +1,19 @@
 # Interface do Usuário: Administrador (Admin)
 
-**Nível de Acesso:** Supremo
-**Responsável:** Controle total do bot e do sistema de catálogo.
+**Nível de Acesso:** Supremo (Nível 4)
+**Responsável:** Controle total do bot, desenvolvimento de novas ferramentas e homologação da plataforma.
+
+## Acesso Oculto (Bypass)
+O Administrador não precisa de um código gerado via banco de dados para entrar no sistema. Ele possui acesso garantido através da senha invisível configurada no servidor (arquivo `.env`).
+- **Comando de Entrada:** `/start [SENHA_DO_ENV]`
+- **Segurança:** Imediatamente após enviar a senha, o bot apaga a mensagem do chat para que a credencial não fique exposta no histórico do Telegram. O usuário ganha Nível 4 instantaneamente.
 
 ## Ferramentas Disponíveis no Telegram (Botões Principais)
 
-1. **🛠️ Sistema:**
+1. **⚙️ Sistema:**
    - **Descrição:** Painel de controle do sistema do Bot.
-   - **Comportamento:** Permite gerenciar configurações globais, forçar reinicializações e acessar o Modo Testador.
+   - **Comportamento:** Permite gerenciar configurações globais e funções administrativas essenciais do backend.
 
-2. **📦 Estoque:**
-   - **Descrição:** Acesso às ferramentas de inserção de produtos.
-   - **Comportamento:** O Admin pode cadastrar produtos diretamente pelo bot (como Funko Pops) sem passar por aprovação de superiores.
-
-3. **📊 Relatórios:**
-   - **Descrição:** Visualização de métricas e status do banco de dados.
-   - **Comportamento:** Gera alertas ou resumos diários de acessos e produtos inseridos.
-
-4. **⚙️ Configurações:**
-   - **Descrição:** Ajuste fino de dados.
-   - **Comportamento:** Permite alterar credenciais ou chaves de API (quando suportado via bot).
-
-5. **Gerar Link de Acesso (Catálogo Web):**
-   - **Descrição:** Botão para logar na "Página de Ajuste de Catálogo".
-   - **Comportamento:** O bot gera um "Magic Link" (JWT) de uso único e temporário que permite ao Admin entrar na interface Web.
-
-## Permissões na "Página de Ajustes de Catálogo" (Backend Web)
-- **Visualizar:** Todos os produtos e categorias.
-- **Editar:** Fotos, textos, descrições e categorias.
-- **Deletar:** Qualquer produto do banco de dados.
-- **Privilégio Exclusivo (Ação de Publicação):** O Admin é o ÚNICO usuário que possui o botão de mudar o status de um produto de `PENDENTE` para `PUBLICADO`. Somente ele decide o que vai ao ar no site público (Catálogo do Cliente).
+2. **🧑‍💻 Modo Testador:**
+   - **Descrição:** A ferramenta mais crítica para o desenvolvimento do ERP.
+   - **Comportamento:** Permite criar perfis fictícios ("usuários de teste") e simular acessos de Nível 1 (Quiosque), Nível 2 (Marketing) e Nível 3 (Boss). Através deste modo, o Administrador testa em sandbox todas as funções que os funcionários terão antes de liberá-las no ambiente de produção. Produtos inseridos via Testador ganham a tag `[TESTE]` e não afetam o estoque oficial.

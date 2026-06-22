@@ -1,4 +1,2 @@
-# Interface do Usuário: Boss
-
-> **Documento Vazio (Regra Just-in-Time)**
-> As informações sobre os botões e ferramentas desta interface só serão documentadas aqui no momento em que a programação efetiva destas funções começar no código.
+> **Aviso de Construção (Just-in-Time)**
+> Este documento permanece temporariamente vazio. Os botões e o escopo exato desta interface serão definidos e testados progressivamente através da ferramenta "Modo Testador" do Administrador, antes de serem documentados aqui.
