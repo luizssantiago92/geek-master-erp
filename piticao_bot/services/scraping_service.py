@@ -52,42 +52,73 @@ def scrape_funko_product(query: str):
     except Exception as e:
         print(f"[Scraper] Erro ao buscar no Catálogo Mestre: {e}")
     
-    print(f"[Scraper] Buscando imagem para: {query}")
-    
-    # Busca de Imagem (Bing Fallback melhorado)
+    print(f"[Scraper] Buscando dados reais na mocadopop.com.br para: {query}")
     try:
-        query_bing = urllib.parse.quote(f"funko pop {query} original caixa")
-        bing_url = f'https://www.bing.com/images/search?q={query_bing}'
-        r_bing = requests.get(bing_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+        url_busca = f"https://www.mocadopop.com.br/buscar?q={urllib.parse.quote(query)}"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        r_moca = requests.get(url_busca, headers=headers, timeout=10)
         
-        if r_bing.status_code == 200:
-            soup_bing = BeautifulSoup(r_bing.text, 'html.parser')
-            for a in soup_bing.find_all('a', class_='iusc'):
-                m = a.get('m')
-                if m:
-                    data = json.loads(m)
-                    if data.get('murl'):
-                        img_fallback = data['murl']
-                        # Evitar pegar icones ou coisas não relacionadas
-                        if ".png" not in img_fallback and "icon" not in img_fallback.lower():
-                            result["imagem_url"] = img_fallback
-                            print(f"[Scraper] Imagem encontrada: {img_fallback}")
-                            break
-    except Exception as ex_bing:
-        print(f"[Scraper] Bing Image Search falhou: {ex_bing}")
-
-    print(f"[Scraper] Buscando informações de preço e descrição via IA para: {query}")
-    # Busca de Descrição e Preço via Gemini
-    try:
-        dados_json = gerar_dados_produto(query)
-        limpo = dados_json.replace("```json", "").replace("```", "").strip()
-        dados = json.loads(limpo)
-        if "preco_base" in dados:
-            result["preco_base"] = float(dados["preco_base"])
-        if "descricao" in dados:
-            result["descricao"] = str(dados["descricao"])
+        if r_moca.status_code == 200:
+            soup = BeautifulSoup(r_moca.text, 'html.parser')
+            # Loja Integrada
+            products = soup.find_all('div', class_='listagem-item')
+            if not products:
+                products = soup.find_all('li', class_='listagem-item')
+                
+            if products:
+                first_product = products[0]
+                
+                # Nome
+                name_tag = first_product.find('a', class_='nome-produto')
+                if name_tag: result["nome"] = name_tag.text.strip()
+                
+                # Preço
+                price_tag = first_product.find('strong', class_='preco-promocional')
+                if not price_tag:
+                    price_tag = first_product.find('strong', class_='preco-venda')
+                
+                if price_tag:
+                    # Extrair os números "R$ 139,90" -> 139.90
+                    price_str = price_tag.text.replace('R$', '').replace('.', '').replace(',', '.').strip()
+                    try:
+                        result["preco_base"] = float(price_str)
+                    except:
+                        pass
+                        
+                # Imagem
+                img_tag = first_product.find('img')
+                if img_tag:
+                    img_url = img_tag.get('data-src') or img_tag.get('src')
+                    if img_url and img_url.startswith('//'):
+                        img_url = 'https:' + img_url
+                    result["imagem_url"] = img_url
+                    
+                print(f"[Scraper] Sucesso na Moca do Pop! {result['nome']} - R$ {result['preco_base']}")
+                
     except Exception as e:
-        print(f"[Scraper] Erro ao extrair dados da IA: {e}")
+        print(f"[Scraper] Erro ao buscar na Moça do Pop: {e}")
+        
+    # Se falhar na Moça do pop (imagem vazia), tenta bing fallback
+    if not result["imagem_url"]:
+        print("[Scraper] Fallback para Bing Images...")
+        try:
+            query_bing = urllib.parse.quote(f"funko pop {query} original caixa")
+            bing_url = f'https://www.bing.com/images/search?q={query_bing}'
+            r_bing = requests.get(bing_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+            
+            if r_bing.status_code == 200:
+                soup_bing = BeautifulSoup(r_bing.text, 'html.parser')
+                for a in soup_bing.find_all('a', class_='iusc'):
+                    m = a.get('m')
+                    if m:
+                        data = json.loads(m)
+                        if data.get('murl'):
+                            img_fallback = data['murl']
+                            if ".png" not in img_fallback and "icon" not in img_fallback.lower():
+                                result["imagem_url"] = img_fallback
+                                break
+        except Exception as ex_bing:
+            pass
 
     # Fase 2: Download da imagem e Upload para o Supabase Storage (Bucket: imagens_produtos)
     def download_and_upload(url, name_suffix):

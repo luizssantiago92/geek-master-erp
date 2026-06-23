@@ -17,6 +17,10 @@ def obter_saudacao():
     else:
         return "Boa noite"
 
+from telegram import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+
+URL_MINI_APP = "https://geek-master-erp.vercel.app/admin" # Atualize esta URL após o deploy na Vercel
+
 def get_menu_por_nivel(nivel: int, is_testing: bool = False) -> ReplyKeyboardMarkup:
     """Retorna o teclado interativo (ReplyKeyboardMarkup) apropriado para o nível de acesso."""
     if nivel == 1:
@@ -27,12 +31,12 @@ def get_menu_por_nivel(nivel: int, is_testing: bool = False) -> ReplyKeyboardMar
     elif nivel == 2:
         keyboard = [
             ["📊 Relatórios (Em breve)"],
-            ["🏢 Página de Ajustes"]
+            [KeyboardButton("🏢 Página de Ajustes", web_app=WebAppInfo(url=URL_MINI_APP))]
         ]
     elif nivel == 3:
         keyboard = [
             ["🛍️ Modo Venda", "📦 Modo Estoque", "🔄 Sincronizar Catálogos"],
-            ["🏢 Página de Ajustes"],
+            [KeyboardButton("🏢 Página de Ajustes", web_app=WebAppInfo(url=URL_MINI_APP))],
             ["🔙 Voltar ao Menu"]
         ]
     elif nivel == 4:

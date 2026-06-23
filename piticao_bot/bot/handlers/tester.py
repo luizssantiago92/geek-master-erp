@@ -146,6 +146,7 @@ async def handle_tester_messages(update: Update, context: ContextTypes.DEFAULT_T
             "preco_base": preco_venda,
             "imagem_url": resultado_scraping.get("imagem_url"),
             "status_scraping": "CONCLUIDO",
+            "status_publicacao": "PENDENTE",
             "descricao": resultado_scraping.get("descricao"),
             "is_new": resultado_scraping.get("is_new", False),
             "imagens_galeria": resultado_scraping.get("imagens_galeria", [])
