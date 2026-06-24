@@ -75,10 +75,11 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
                 
         if text == "🎟️ Gerar Código":
             keyboard = [
-                [InlineKeyboardButton("1️⃣ Quiosque (Vendedor)", callback_data="gerar_1")],
-                [InlineKeyboardButton("2️⃣ Marketing", callback_data="gerar_2")],
-                [InlineKeyboardButton("3️⃣ Boss", callback_data="gerar_3")],
-                [InlineKeyboardButton("4️⃣ Administrador (ADM)", callback_data="gerar_4")]
+                [InlineKeyboardButton("1️⃣ Quiosque", callback_data="gerar_1")],
+                [InlineKeyboardButton("2️⃣ Vendedor", callback_data="gerar_2")],
+                [InlineKeyboardButton("3️⃣ Marketing", callback_data="gerar_3")],
+                [InlineKeyboardButton("4️⃣ Boss", callback_data="gerar_4")],
+                [InlineKeyboardButton("5️⃣ Administrador (ADM)", callback_data="gerar_5")]
             ]
             await update.message.reply_text("Para qual tipo de usuário você deseja gerar o código de acesso?", reply_markup=InlineKeyboardMarkup(keyboard))
             return True
@@ -89,7 +90,8 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
             msg = "👥 *Usuários Ativos no Sistema:*\n\n"
             for f in todos:
                 status_txt = "✅ Ativo" if f.get("ativo", True) else "⏸️ Suspenso"
-                msg += f"👤 *{f['nome']}* ({status_txt})\n├ ID: `{f['id']}`\n├ Cargo: {f['cargo']}\n└ Nível: {f['nivel_acesso']}\n\n"
+                nome_exib = f"{f['nome']} (Vendedor)" if f['nivel_acesso'] == 2 else f['nome']
+                msg += f"👤 *{nome_exib}* ({status_txt})\n├ ID: `{f['id']}`\n├ Cargo: {f['cargo']}\n└ Nível: {f['nivel_acesso']}\n\n"
             await update.message.reply_text(msg, parse_mode="Markdown")
             return True
             
