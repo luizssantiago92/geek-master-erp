@@ -70,46 +70,38 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text("❌ Erro ao desativar usuário.")
         return
 
+    if data == "broadcast_whatsapp":
+        await query.answer("Em breve: Integração direta com o grupo WhatsApp da Equipe Piticas Rio!", show_alert=True)
+        return
+
+    if data == "broadcast_telegram_menu":
+        from services.supabase_service import get_todos_funcionarios
+        todos = get_todos_funcionarios()
+        keyboard = [[InlineKeyboardButton("📢 Enviar para TODOS os Usuários Ativos", callback_data="broadcast_telegram_todos")]]
+        for f in todos:
+            if f.get('ativo', True) and str(f['telegram_id']) != telegram_id:
+                keyboard.append([InlineKeyboardButton(f"👤 {f['nome']} ({f['cargo']})", callback_data=f"broadcast_telegram_user_{f['telegram_id']}")])
+        keyboard.append([InlineKeyboardButton("❌ Cancelar", callback_data="broadcast_cancela")])
+        
+        await query.edit_message_text("Selecione para quem deseja enviar a mensagem:", reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+        
+    if data == "broadcast_cancela":
+        await query.edit_message_text("Transmissão cancelada.")
+        user_states.pop(telegram_id, None)
+        return
+        
+    if data.startswith("broadcast_telegram_"):
+        destino = data.replace("broadcast_telegram_", "")
+        if destino.startswith("user_"):
+            destino = destino.replace("user_", "")
+        user_states[telegram_id] = f"esperando_mensagem_broadcast_{destino}"
+        alvo_nome = "TODOS os usuários ativos" if destino == "todos" else "o usuário selecionado"
+        await query.edit_message_text(f"Digite a mensagem que você quer transmitir para {alvo_nome}.\n\n(Ou digite `Cancelar` para desistir).", parse_mode="Markdown")
+        return
+
     if data.startswith("gerar_"):
-        if data == "gerar_teste_menu":
-            keyboard = [
-                [InlineKeyboardButton("1️⃣ Quiosque (Teste)", callback_data="gerar_teste_nivel_1")],
-                [InlineKeyboardButton("2️⃣ Marketing (Teste)", callback_data="gerar_teste_nivel_2")],
-                [InlineKeyboardButton("3️⃣ Boss (Teste)", callback_data="gerar_teste_nivel_3")]
-            ]
-            await query.edit_message_text("Para qual perfil você quer gerar um Código de Teste (TST-)?", reply_markup=InlineKeyboardMarkup(keyboard))
-            return
-            
-        if data.startswith("gerar_teste_nivel_"):
-            nivel = int(data.replace("gerar_teste_nivel_", ""))
-            nome_nivel = NIVEIS.get(nivel)
-            nome_customizado = f"Perfil {nome_nivel}"
-            
-            codigo = gerar_novo_codigo(funcionario['id'], nivel, nome_atribuido=nome_customizado, is_tester=True)
-            
-            if codigo:
-                import qrcode
-                from io import BytesIO
-                bot_username = context.bot.username
-                deep_link = f"https://t.me/{bot_username}?start={codigo}"
-                
-                qr = qrcode.QRCode(version=1, box_size=10, border=4)
-                qr.add_data(deep_link)
-                qr.make(fit=True)
-                img = qr.make_image(fill_color="black", back_color="white")
-                
-                bio = BytesIO()
-                bio.name = "teste_acesso.png"
-                img.save(bio, "PNG")
-                bio.seek(0)
-                
-                msg = f"✅ Código TST- gerado para {nome_nivel}.\nEscaneie este QR Code ou envie a imagem para o bot, ou digite o código manualmente no Modo Testador.\n\n⚠️ *ATENÇÃO: Este código expira em 30 minutos!*\n\nLink direto: {deep_link}"
-                await context.bot.send_photo(chat_id=telegram_id, photo=bio, caption=msg, parse_mode="Markdown")
-                await context.bot.send_message(chat_id=telegram_id, text=f"`{codigo}`", parse_mode="Markdown")
-                await query.delete_message()
-            else:
-                await query.edit_message_text("❌ Erro ao gerar o código de teste.")
-            return
+
 
         nivel = int(data.split("_")[1])
         if nivel > 1:

@@ -11,14 +11,14 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
     estado_atual = user_states.get(telegram_id)
     nivel_real = funcionario['nivel_acesso']
 
-    if text == "🛠️ Sistema" and nivel_efetivo == 4:
+    if text == "⚙️ Controle de Sistema" and nivel_efetivo == 4:
         keyboard = ReplyKeyboardMarkup([
-            ["🎟️ Gerar Código", "👥 Listar Usuários"],
+            ["🎟️ Gerar Código", "👥 Usuários Ativos"],
             ["📢 Transmissão Global", "⏸️ Suspender/Ativar"],
             ["🚫 Revogar Acesso", "📊 Resumo do Sistema"],
             ["🔙 Voltar ao Menu"]
         ], resize_keyboard=True)
-        await update.message.reply_text("Você acessou o menu de **Sistema**.", reply_markup=keyboard, parse_mode='Markdown')
+        await update.message.reply_text("Você acessou o **Controle de Sistema**.", reply_markup=keyboard, parse_mode='Markdown')
         return True
 
     if text == "🎭 Personas" and nivel_efetivo == 4:
@@ -63,8 +63,8 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text(texto_ranking, parse_mode="Markdown")
         return True
 
-    # Comandos do menu Sistema
-    acoes_restritas = ["🎟️ Gerar Código", "🚫 Revogar Acesso", "⏸️ Suspender/Ativar", "📢 Transmissão Global", "👥 Listar Usuários"]
+    # Comandos do menu Controle de Sistema
+    acoes_restritas = ["🎟️ Gerar Código", "🚫 Revogar Acesso", "⏸️ Suspender/Ativar", "📢 Transmissão Global", "👥 Usuários Ativos"]
     if text in acoes_restritas:
         if funcionario.get('medalhao') == 'Silver':
             from services.supabase_service import verificar_autorizacao_valida
@@ -78,13 +78,12 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
                 [InlineKeyboardButton("1️⃣ Quiosque (Vendedor)", callback_data="gerar_1")],
                 [InlineKeyboardButton("2️⃣ Marketing", callback_data="gerar_2")],
                 [InlineKeyboardButton("3️⃣ Boss", callback_data="gerar_3")],
-                [InlineKeyboardButton("4️⃣ Administrador (ADM)", callback_data="gerar_4")],
-                [InlineKeyboardButton("🧪 Código de Testador (TST-)", callback_data="gerar_teste_menu")]
+                [InlineKeyboardButton("4️⃣ Administrador (ADM)", callback_data="gerar_4")]
             ]
             await update.message.reply_text("Para qual tipo de usuário você deseja gerar o código de acesso?", reply_markup=InlineKeyboardMarkup(keyboard))
             return True
             
-        elif text == "👥 Listar Usuários":
+        elif text == "👥 Usuários Ativos":
             if funcionario['nivel_acesso'] < 4: return True
             todos = get_todos_funcionarios()
             msg = "👥 *Usuários Ativos no Sistema:*\n\n"
@@ -96,20 +95,32 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
             
         elif text == "📢 Transmissão Global":
             if funcionario['nivel_acesso'] < 4: return True
-            user_states[telegram_id] = "esperando_mensagem_broadcast"
-            await update.message.reply_text("Digite a mensagem que você quer transmitir para TODOS os celulares do sistema.\n\n(Ou digite `Cancelar` para desistir).", parse_mode="Markdown")
+            keyboard = [
+                [InlineKeyboardButton("🟢 Grupo WhatsApp (Piticas Rio)", callback_data="broadcast_whatsapp")],
+                [InlineKeyboardButton("🔵 Usuários do Telegram", callback_data="broadcast_telegram_menu")]
+            ]
+            await update.message.reply_text("Selecione o destino da transmissão:", reply_markup=InlineKeyboardMarkup(keyboard))
             return True
             
         elif text == "🚫 Revogar Acesso":
             if funcionario['nivel_acesso'] < 4: return True
+            todos = get_todos_funcionarios()
+            msg = "👥 *Usuários no Sistema:*\n"
+            for f in todos:
+                msg += f"• {f['nome']}\n"
             user_states[telegram_id] = "esperando_nome_revogar"
-            await update.message.reply_text("Digite o **NOME EXATO** (ou parte do nome) do usuário que você deseja remover PERMANENTEMENTE do sistema.\n\n(Ou digite `Cancelar` para desistir).", parse_mode="Markdown")
+            await update.message.reply_text(f"{msg}\nDigite o **nome cadastrado** (ou parte dele) para EXCLUIR o acesso PERMANENTEMENTE.\n\n(Ou digite `Cancelar`).", parse_mode="Markdown")
             return True
             
         elif text == "⏸️ Suspender/Ativar":
             if funcionario['nivel_acesso'] < 4: return True
+            todos = get_todos_funcionarios()
+            msg = "👥 *Usuários no Sistema:*\n"
+            for f in todos:
+                status = "✅" if f.get('ativo', True) else "⏸️"
+                msg += f"• {status} {f['nome']}\n"
             user_states[telegram_id] = "esperando_nome_suspender"
-            await update.message.reply_text("Digite o **NOME EXATO** (ou parte do nome) do usuário que você deseja suspender ou ativar.\n\n(Ou digite `Cancelar` para desistir).", parse_mode="Markdown")
+            await update.message.reply_text(f"{msg}\nDigite o **nome cadastrado** (ou parte dele) do usuário que deseja suspender/ativar.\n\n(Ou digite `Cancelar`).", parse_mode="Markdown")
             return True
 
     if text == "📊 Resumo do Sistema" and nivel_efetivo == 4:
@@ -118,19 +129,22 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
         return True
 
     # Estados do Admin
-    if estado_atual == "esperando_mensagem_broadcast":
+    if estado_atual and estado_atual.startswith("esperando_mensagem_broadcast"):
         if text.lower() == "cancelar":
             user_states.pop(telegram_id, None)
             await update.message.reply_text("Transmissão cancelada.")
             return True
+        
+        destino = estado_atual.replace("esperando_mensagem_broadcast_", "")
         funcionarios = get_todos_funcionarios()
         sucessos = 0
         for f in funcionarios:
-            if str(f["telegram_id"]) != telegram_id:
-                try:
-                    await context.bot.send_message(chat_id=f["telegram_id"], text=f"📢 *MENSAGEM DA ADMINISTRAÇÃO:*\n\n{text}", parse_mode="Markdown")
-                    sucessos += 1
-                except: pass
+            if str(f["telegram_id"]) != telegram_id and f['ativo']:
+                if destino == "todos" or destino == str(f["telegram_id"]):
+                    try:
+                        await context.bot.send_message(chat_id=f["telegram_id"], text=f"📢 *MENSAGEM DA ADMINISTRAÇÃO:*\n\n{text}", parse_mode="Markdown")
+                        sucessos += 1
+                    except: pass
         user_states.pop(telegram_id, None)
         await update.message.reply_text(f"✅ Transmissão enviada com sucesso para {sucessos} usuário(s).")
         return True

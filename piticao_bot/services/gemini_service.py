@@ -10,6 +10,38 @@ print("DEBUG: GEMINI_API_KEY loaded starts with:", GEMINI_API_KEY[:10] if GEMINI
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
+def ler_qr_code_gemini(caminho_imagem: str) -> str:
+    """
+    Envia a imagem para o Gemini 1.5 Flash pedir para extrair qualquer QR Code ou texto.
+    Usado para autenticação de novos usuários via foto do QR Code.
+    """
+    if not GEMINI_API_KEY:
+        return ""
+        
+    try:
+        with open(caminho_imagem, "rb") as image_file:
+            image_data = image_file.read()
+            
+        image_blob = {
+            'mime_type': 'image/jpeg',
+            'data': image_data
+        }
+        
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        prompt = (
+            "Examine esta imagem atentamente. Ela contém um código QR ou um texto de código de acesso."
+            "Eu preciso apenas do texto exato contido no código QR ou código de acesso."
+            "Procure por padrões que comecem com 'PTC-'. "
+            "Retorne APENAS o texto exato do código, sem nenhuma palavra a mais, sem aspas, sem crases."
+            "Se você não encontrar nenhum código, retorne VAZIO."
+        )
+        
+        response = model.generate_content([image_blob, prompt])
+        return response.text.strip()
+    except Exception as e:
+        print(f"Erro ao ler QR Code com Gemini: {e}")
+        return ""
+
 def analisar_imagem_gemini(caminho_imagem: str):
     """
     Envia a imagem para o Gemini 1.5 Flash (ideal para visão/multimodal)

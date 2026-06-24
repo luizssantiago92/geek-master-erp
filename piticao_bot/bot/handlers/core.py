@@ -21,11 +21,11 @@ from telegram import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 
 URL_MINI_APP = "https://geek-master-erp.vercel.app/admin" # Atualize esta URL após o deploy na Vercel
 
-def get_menu_por_nivel(nivel: int, is_testing: bool = False) -> ReplyKeyboardMarkup:
-    """Retorna o teclado interativo (ReplyKeyboardMarkup) apropriado para o nível de acesso."""
+def get_menu_por_nivel(nivel: int, is_tester_mode: bool = False) -> ReplyKeyboardMarkup:
+    """Retorna o teclado principal adequado ao nível de acesso do usuário."""
     if nivel == 1:
         keyboard = [
-            ["📦 Estoque", "🛒 Venda"],
+            ["📦 Estoque (Entrada)", "🛒 Venda (Saída)"],
             ["📋 Reposição", "📦 Encomendas"]
         ]
     elif nivel == 2:
@@ -41,12 +41,12 @@ def get_menu_por_nivel(nivel: int, is_testing: bool = False) -> ReplyKeyboardMar
         ]
     elif nivel == 4:
         keyboard = [
-            ["🧑‍💻 Modo Testador", "⚙️ Sistema"]
+            ["⚙️ Controle de Sistema", "🧑‍💻 Modo Testador"]
         ]
     else:
         keyboard = [["/start"]]
         
-    if is_testing:
+    if is_tester_mode:
         keyboard.append(["🔙 Sair do Teste"])
         
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)

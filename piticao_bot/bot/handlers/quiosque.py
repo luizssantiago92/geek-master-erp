@@ -1,9 +1,9 @@
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove, ReplyKeyboardMarkup
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 from telegram.ext import ContextTypes
 import asyncio
 from services.supabase_service import supabase, buscar_encomendas_pendentes, salvar_produto
 from bot.state import user_states, pending_notifications
-from bot.handlers.core import get_menu_por_nivel
+from bot.handlers.core import get_menu_por_nivel, URL_MINI_APP
 
 async def processar_salvamento_assincrono(nome, franquia, numero, chat_id, context, nivel_efetivo, is_testing):
     from services.scraping_service import scrape_funko_product
@@ -72,12 +72,22 @@ async def handle_quiosque_messages(update: Update, context: ContextTypes.DEFAULT
     """Retorna True se a mensagem foi tratada aqui."""
     estado_atual = user_states.get(telegram_id)
     
-    if text == "📦 Estoque":
+    if text == "📦 Estoque (Entrada)":
         user_states[telegram_id] = "esperando_foto_entrada"
-        await update.message.reply_text("📦 **ESTOQUE (Entrada/Cadastro)**\n\nEnvie a foto do produto + código de barras. Se o produto for novo, ele será cadastrado automaticamente. Se já existir, apenas daremos entrada (+1).", parse_mode="Markdown")
+        keyboard = [
+            ["➕ Enviar mais Produtos"],
+            [InlineKeyboardButton("✅ Finalizar Cadastro de Produtos", web_app=WebAppInfo(url=URL_MINI_APP))],
+            ["🔙 Voltar ao Menu"]
+        ]
+        await update.message.reply_text("📦 **ESTOQUE (Entrada/Cadastro)**\n\nEnvie as fotos dos produtos que você deseja cadastrar.\n\n*DICA:* Envie no máximo 10 itens por vez para não sobrecarregar o sistema.", parse_mode="Markdown", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
         return True
         
-    if text == "🛒 Venda":
+    if text == "➕ Enviar mais Produtos":
+        user_states[telegram_id] = "esperando_foto_entrada"
+        await update.message.reply_text("Pode enviar mais fotos (lembre-se do limite de 10 por vez).", parse_mode="Markdown")
+        return True
+        
+    if text == "🛒 Venda (Saída)":
         user_states[telegram_id] = "esperando_foto_venda"
         await update.message.reply_text("🛒 **REGISTRAR VENDA (-1)**\n\nEnvie a **foto do código de barras** (ou do produto) que acabou de ser vendido.", parse_mode="Markdown")
         return True
@@ -104,17 +114,7 @@ async def handle_quiosque_messages(update: Update, context: ContextTypes.DEFAULT
         return True
         
     if text == "📦 Encomendas":
-        encomendas = buscar_encomendas_pendentes(funcionario['id'])
-        if not encomendas:
-            await update.message.reply_text("✅ *Tudo limpo!*\nVocê não tem nenhuma encomenda aguardando ação neste momento.", parse_mode="Markdown")
-            return True
-        texto = f"📦 Você tem **{len(encomendas)}** encomendas aguardando ação:\n\nSelecione um pedido abaixo para gerenciar:"
-        keyboard = []
-        for enc in encomendas:
-            status_emoji = "⏳" if enc['status'] == "PENDENTE" else "🛍️"
-            nome_botao = f"{status_emoji} #{enc['codigo_pedido']} - {enc['cliente_nome']}"
-            keyboard.append([InlineKeyboardButton(nome_botao, callback_data=f"enc_detalhe_{enc['id']}")])
-        await update.message.reply_text(texto, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+        await update.message.reply_text("🚀 Em breve!\nEste módulo será ativado quando lançarmos o site de catálogo para os clientes montarem suas encomendas.")
         return True
 
     # Fluxo Cadastro Inteligente / Funko

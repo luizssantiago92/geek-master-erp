@@ -5,7 +5,8 @@ import json
 import tempfile
 from bot.state import user_states
 from services.supabase_service import get_funcionario_by_telegram_id, salvar_produto, buscar_produto_por_ean, supabase, upload_image_to_storage, adicionar_produto_teste
-from services.gemini_service import analisar_imagem_gemini, analisar_caixa_funko
+from services.gemini_service import analisar_imagem_gemini, analisar_caixa_funko, ler_qr_code_gemini
+from services.supabase_service import validar_e_usar_codigo
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Lida com o recebimento de imagens (produtos, códigos de barras, etc)."""
@@ -13,9 +14,38 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
         
     telegram_id = str(update.message.from_user.id)
+    telegram_name = update.message.from_user.first_name
     funcionario = get_funcionario_by_telegram_id(telegram_id)
     
     if not funcionario:
+        # Usuário não cadastrado tentou enviar uma foto. Pode ser um QR Code de acesso!
+        msg_auth = await update.message.reply_text("🔎 Analisando imagem em busca de Código de Acesso...")
+        foto_file = await update.message.photo[-1].get_file()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+            await foto_file.download_to_drive(tmp_file.name)
+            caminho = tmp_file.name
+            
+        texto_qr = ler_qr_code_gemini(caminho)
+        os.remove(caminho)
+        
+        if "PTC-" in texto_qr:
+            # Extrair apenas a parte que importa (ex: PTC-1234A)
+            import re
+            match = re.search(r'(PTC-\d+[A-Z])', texto_qr)
+            if match:
+                codigo = match.group(1)
+                sucesso, resposta = validar_e_usar_codigo(telegram_id, telegram_name, codigo)
+                if sucesso:
+                    await msg_auth.edit_text(f"🎉 **Autenticação Concluída com Sucesso!**\n\nBem-vindo(a), {resposta['nome']}!\nCargo: {resposta['cargo']}", parse_mode="Markdown")
+                    # Enviar menu inicial
+                    from bot.handlers.core import cmd_start
+                    await cmd_start(update, context)
+                else:
+                    await msg_auth.edit_text(resposta)
+            else:
+                await msg_auth.edit_text("❌ Nenhum código válido encontrado na imagem.")
+        else:
+            await msg_auth.edit_text("❌ Não reconheci você. Peça um código de acesso (QR Code) ao seu gerente.")
         return
         
     estado_atual = user_states.get(telegram_id)
@@ -29,7 +59,11 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await foto_file.download_to_drive(tmp_file.name)
         caminho = tmp_file.name
         
-    msg_espera = await update.message.reply_text("Processando imagem...")
+    texto_espera = "Processando imagem..."
+    if estado_atual == "esperando_foto_entrada":
+        texto_espera = "Carregando... ⏳\nEnquanto o carregamento é feito nos bastidores, um novo lote de até 10 itens pode ser enviado para a fila de espera!"
+        
+    msg_espera = await update.message.reply_text(texto_espera)
         
     # --- ROTEAMENTO INTELIGENTE DE FOTO PARA FUNKO ---
     if estado_atual == "teste_novo_scraping_tipo":
@@ -152,8 +186,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 supabase.table("estoque").insert({"produto_id": produto_id, "quiosque_id": funcionario['id'], "quantidade": 1}).execute()
                 
             await msg_espera.edit_text("✅ Produto registrado no Catálogo (se novo) e Entrada de Estoque (+1) efetuada!")
-            user_states.pop(telegram_id, None)
-            
+            # Não limpamos o state para permitir envios em lote: user_states.pop(telegram_id, None)
         # --- FLUXO DE 2ª FOTO DA ENTRADA DE ESTOQUE ---
         elif estado_atual.startswith("esperando_codigo_entrada"):
             partes = estado_atual.split("|||")
@@ -188,8 +221,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 supabase.table("estoque").insert({"produto_id": produto_id, "quiosque_id": funcionario['id'], "quantidade": 1}).execute()
                 
             await msg_espera.edit_text("✅ Produto cadastrado com sucesso e Entrada de Estoque (+1) efetuada!")
-            user_states.pop(telegram_id, None)
-
+            user_states[telegram_id] = "esperando_foto_entrada" # Volta pro lote
         # --- FLUXO DE VENDA DE PRODUTO ---
         elif estado_atual == "esperando_foto_venda":
             if not ean and not nome:
