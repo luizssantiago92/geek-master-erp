@@ -12,66 +12,60 @@ export default function AdminCatalog() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Verifica Autenticação Mágica
+  const { user, isTelegram } = useTelegram();
+
+  // Verifica Autenticação Nativa (Telegram)
   useEffect(() => {
-    checkMagicLink();
-  }, []);
+    checkTelegramAuth();
+  }, [user, isTelegram]);
 
-  async function checkMagicLink() {
-    try {
+  async function checkTelegramAuth() {
+    if (!isTelegram) {
+      // Se não estiver no Telegram, tenta ver se tem um token na URL para debug local
       const token = searchParams.get('token');
-      
       if (token) {
-        setLoading(true);
-        // Validar Token no banco
-        const { data, error } = await supabase
-          .from('sessoes_magicas')
-          .select('*')
-          .eq('token', token)
-          .single();
+        setAuthError('Desenvolvimento Local: Acesso concedido pelo Token (Mock)');
+        setSession({ nivel_acesso: 5 }); // Simula Admin
+        setLoading(false);
+        fetchProdutos();
+        return;
+      }
+      setAuthError('Acesso Restrito. Por favor, abra esta página através do Bot no Telegram.');
+      setLoading(false);
+      return;
+    }
 
-        if (error || !data) {
-          setAuthError('Token inválido ou não encontrado.');
-        } else if (data.usado) {
-          setAuthError('Este link já foi utilizado. Gere um novo no Bot.');
-        } else {
-          // Token válido, "queimar" o token e salvar sessão
-          await supabase.from('sessoes_magicas').update({ usado: true }).eq('token', token);
-          
-          const sessionData = {
-            telegram_id: data.telegram_id,
-            nivel_acesso: data.nivel_acesso,
-            expires: new Date().getTime() + 1000 * 60 * 60 * 24 // 24 horas
-          };
-          localStorage.setItem('adminSession', JSON.stringify(sessionData));
-          setSession(sessionData);
-          
-          // Limpa a URL
-          navigate('/admin', { replace: true });
-        }
+    if (!user || !user.id) {
+      setAuthError('Não foi possível identificar seu usuário no Telegram.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('funcionarios')
+        .select('*')
+        .eq('telegram_id', String(user.id))
+        .single();
+
+      if (error || !data) {
+        setAuthError('Você não tem cadastro no sistema.');
+      } else if (!data.ativo) {
+        setAuthError('Seu acesso está suspenso.');
       } else {
-        // Sem token na URL, verificar localStorage
-        const cached = localStorage.getItem('adminSession');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed.expires > new Date().getTime()) {
-            setSession(parsed);
-          } else {
-            localStorage.removeItem('adminSession');
-            setAuthError('Sua sessão expirou. Gere um novo link no Bot.');
-          }
-        } else {
-          setAuthError('Acesso Restrito. Por favor, solicite um Link de Acesso através do Bot no Telegram.');
-        }
+        setSession({
+          telegram_id: data.telegram_id,
+          nivel_acesso: data.nivel_acesso,
+          nome: data.nome
+        });
+        setAuthError('');
+        fetchProdutos();
       }
     } catch (err) {
-      setAuthError('Erro na autenticação.');
+      setAuthError('Erro ao verificar acesso no banco de dados.');
     } finally {
-      if (!authError) {
-        fetchProdutos();
-      } else {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }
 

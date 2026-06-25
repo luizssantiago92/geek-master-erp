@@ -81,36 +81,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 
-    if text == "🔗 Página de Ajustes":
-        from services.supabase_service import gerar_sessao_magica
-        token = gerar_sessao_magica(telegram_id, nivel_efetivo)
-        if token:
-            link = f"http://localhost:5173/admin?token={token}"
-            await update.message.reply_text(
-                f"🌐 *Acesso Rápido Web*\n\nSeu link de acesso seguro foi gerado!\n"
-                f"Como você está rodando o site localmente, o Telegram não permite botões diretos para 'localhost'.\n\n"
-                f"Por favor, clique no link abaixo ou copie e cole no seu navegador:\n\n"
-                f"{link}\n\n"
-                f"_(Link de uso único válido por 24 horas)_", 
-                parse_mode="Markdown"
-            )
-        else:
-            await update.message.reply_text("❌ Erro ao gerar link de acesso. Tente novamente mais tarde.")
-        return
+
 
     # Delegação para os manipuladores modulares (Roteamento)
     # A ordem aqui define quem processa primeiro (importante para menus com mesmo nome, se houver)
     tratado = False
 
-    if nivel_efetivo >= 4 or (estado_atual and estado_atual.startswith("esperando_nome_codigo_")):
+    if nivel_efetivo >= 5 or (estado_atual and estado_atual.startswith("esperando_nome_codigo_")):
         tratado = await handle_admin_messages(update, context, text, telegram_id, funcionario, nivel_efetivo, is_testing)
         if tratado: return
 
-    if nivel_efetivo >= 3 and not tratado:
+    if nivel_efetivo >= 4 and not tratado:
         tratado = await handle_boss_messages(update, context, text, telegram_id, funcionario, nivel_efetivo, is_testing)
         if tratado: return
 
-    if nivel_efetivo >= 2 and not tratado:
+    if nivel_efetivo >= 3 and not tratado:
         tratado = await handle_marketing_messages(update, context, text, telegram_id, funcionario, nivel_efetivo, is_testing)
         if tratado: return
 
@@ -118,7 +103,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         tratado = await handle_quiosque_messages(update, context, text, telegram_id, funcionario, nivel_efetivo, is_testing)
         if tratado: return
 
-    if (nivel_efetivo == 4 or is_testing) and not tratado:
+    if (nivel_efetivo == 5 or is_testing) and not tratado:
         tratado = await handle_tester_messages(update, context, text, telegram_id, funcionario, nivel_efetivo, is_testing)
         if tratado: return
 

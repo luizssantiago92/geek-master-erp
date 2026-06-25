@@ -11,7 +11,7 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
     estado_atual = user_states.get(telegram_id)
     nivel_real = funcionario['nivel_acesso']
 
-    if text == "⚙️ Controle de Sistema" and nivel_efetivo == 4:
+    if text == "⚙️ Controle de Sistema" and nivel_efetivo == 5:
         keyboard = ReplyKeyboardMarkup([
             ["🎟️ Gerar Código", "👥 Usuários Ativos"],
             ["📢 Transmissão Global", "⏸️ Suspender/Ativar"],
@@ -21,15 +21,9 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("Você acessou o **Controle de Sistema**.", reply_markup=keyboard, parse_mode='Markdown')
         return True
 
-    if text == "🎭 Personas" and nivel_efetivo == 4:
-        keyboard = ReplyKeyboardMarkup([
-            ["🎭 Escolher Persona", "📊 Ranking Personas"],
-            ["🔙 Voltar ao Menu"]
-        ], resize_keyboard=True)
-        await update.message.reply_text("Você acessou o menu de **Personas**.", reply_markup=keyboard, parse_mode='Markdown')
-        return True
 
-    if text == "🧪 Modo Testador" and nivel_efetivo == 4:
+
+    if text == "🧑‍💻 Modo Testador" and nivel_efetivo == 5:
         keyboard = ReplyKeyboardMarkup([
             ["📦 Estoque Teste", "🧪 Testar Usuários"],
             ["🔙 Voltar ao Menu"]
@@ -37,7 +31,7 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("Você acessou o **Modo Testador**.", reply_markup=keyboard, parse_mode='Markdown')
         return True
 
-    if text == "🧪 Testar Usuários" and nivel_real == 4:
+    if text == "🧪 Testar Usuários" and nivel_real == 5:
         keyboard = [
             [InlineKeyboardButton("🔑 Inserir TST- (Simular Novo Acesso)", callback_data="teste_onboarding")]
         ]
@@ -47,21 +41,7 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("🧪 **Testar Usuários - Perfis Criados**", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
         return True
 
-    if text == "📊 Ranking Personas":
-        if funcionario['nivel_acesso'] < 4:
-            await update.message.reply_text("⛔ Acesso Negado.")
-            return True
-        from services.supabase_service import get_ranking_personas
-        ranking = get_ranking_personas()
-        if not ranking:
-            await update.message.reply_text("📉 Ainda não há dados de ranking das personas.")
-            return True
-        texto_ranking = "🏆 *Ranking de Uso das Personas* 🏆\n\n"
-        for i, p in enumerate(ranking, 1):
-            texto_ranking += f"{i}º - *{p['persona_nome']}* ({p['vezes_selecionada']} escolhas)\n"
-        texto_ranking += "\n_Este ranking ajuda a identificar quais personas remover no futuro._"
-        await update.message.reply_text(texto_ranking, parse_mode="Markdown")
-        return True
+
 
     # Comandos do menu Controle de Sistema
     acoes_restritas = ["🎟️ Gerar Código", "🚫 Revogar Acesso", "⏸️ Suspender/Ativar", "📢 Transmissão Global", "👥 Usuários Ativos"]
@@ -85,7 +65,7 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
             return True
             
         elif text == "👥 Usuários Ativos":
-            if funcionario['nivel_acesso'] < 4: return True
+            if funcionario['nivel_acesso'] < 5: return True
             todos = get_todos_funcionarios()
             msg = "👥 *Usuários Ativos no Sistema:*\n\n"
             for f in todos:
@@ -96,7 +76,7 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
             return True
             
         elif text == "📢 Transmissão Global":
-            if funcionario['nivel_acesso'] < 4: return True
+            if funcionario['nivel_acesso'] < 5: return True
             keyboard = [
                 [InlineKeyboardButton("🟢 Grupo WhatsApp (Piticas Rio)", callback_data="broadcast_whatsapp")],
                 [InlineKeyboardButton("🔵 Usuários do Telegram", callback_data="broadcast_telegram_menu")]
@@ -105,7 +85,7 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
             return True
             
         elif text == "🚫 Revogar Acesso":
-            if funcionario['nivel_acesso'] < 4: return True
+            if funcionario['nivel_acesso'] < 5: return True
             todos = get_todos_funcionarios()
             msg = "👥 *Usuários no Sistema:*\n"
             for f in todos:
@@ -115,7 +95,7 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
             return True
             
         elif text == "⏸️ Suspender/Ativar":
-            if funcionario['nivel_acesso'] < 4: return True
+            if funcionario['nivel_acesso'] < 5: return True
             todos = get_todos_funcionarios()
             msg = "👥 *Usuários no Sistema:*\n"
             for f in todos:
@@ -125,7 +105,7 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
             await update.message.reply_text(f"{msg}\nDigite o **nome cadastrado** (ou parte dele) do usuário que deseja suspender/ativar.\n\n(Ou digite `Cancelar`).", parse_mode="Markdown")
             return True
 
-    if text == "📊 Resumo do Sistema" and nivel_efetivo == 4:
+    if text == "📊 Resumo do Sistema" and nivel_efetivo == 5:
         todos = get_todos_funcionarios()
         await update.message.reply_text(f"📊 *Status Atual do Piticão:*\n\n- Bot Operacional: Sim\n- Usuários Logados: {len(todos)}\n- Integração Gemini 1.5: Online\n\n(Painel Web em breve)", parse_mode="Markdown")
         return True
@@ -196,6 +176,21 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
         nome_customizado = text.strip()
         if medalhao: nome_customizado = f"{nome_customizado} ({medalhao} Access)"
         
+        if nivel_para_gerar == 2:
+            quiosques = get_todos_funcionarios(nivel=1)
+            if not quiosques:
+                await update.message.reply_text("❌ Não há Quiosques (Nível 1) cadastrados. Cadastre um Quiosque antes de criar um Vendedor.")
+                user_states.pop(telegram_id, None)
+                return True
+            
+            keyboard = []
+            for q in quiosques:
+                keyboard.append([InlineKeyboardButton(q['nome'], callback_data=f"vinc_quiosq_{q['id']}")])
+            
+            user_states[telegram_id] = f"esperando_quiosque_codigo_{nivel_para_gerar}_{medalhao}|||{nome_customizado}"
+            await update.message.reply_text("Selecione a qual Quiosque este Vendedor pertence:", reply_markup=InlineKeyboardMarkup(keyboard))
+            return True
+            
         codigo = gerar_novo_codigo(funcionario['id'], nivel_para_gerar, nome_atribuido=nome_customizado, medalhao=medalhao, is_tester=is_teste)
         user_states.pop(telegram_id, None)
         

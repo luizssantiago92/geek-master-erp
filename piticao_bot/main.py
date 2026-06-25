@@ -62,6 +62,9 @@ def main():
     application = Application.builder().token(TELEGRAM_TOKEN).post_init(post_init).build()
 
     # Filtros específicos
+    from bot.handlers.grupo_handler import processar_mensagem_grupo
+    application.add_handler(MessageHandler(filters.ChatType.GROUPS & (filters.TEXT | filters.UpdateType.EDITED_MESSAGE), processar_mensagem_grupo))
+    
     application.add_handler(MessageHandler(filters.TEXT | filters.Sticker.ALL, handle_message))
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     

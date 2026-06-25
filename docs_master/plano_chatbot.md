@@ -15,18 +15,19 @@ O sistema é inviolável e não permite "cadastro aberto". Todo usuário precisa
   - Pode **Desativar/Ativar** temporariamente o acesso de um funcionário sem deletar seus dados históricos.
   - Pode **Revogar (Deletar)** permanentemente um Telegram ID do banco.
 
-## 3. Os 4 Perfis de Usuário (Hierarquia)
+## 3. Os 5 Perfis de Usuário (Hierarquia)
 O bot exibe menus diferentes dependendo do cargo da pessoa:
-1. **Adm (Desenvolvedor/Sistema):** Acesso Divino. O único que tem acesso ao Modo Testador e a Sistema.
-2. **Boss (Gerência / Dono):** Acesso aos cadastros, relatórios comerciais e aprovação final.
-3. **Marketing:** Focado em ferramentas de promoção, banners, vitrine e criação de copies.
-4. **Quiosque (Vendedores):** Focado na operação da ponta. 
+1. **Administrador (Desenvolvedor/Sistema):** Nível Supremo (5). O único que tem acesso ao Modo Testador e a Sistema.
+2. **Boss (Gerência / Dono):** Nível 4. Acesso aos relatórios comerciais e publicação no site.
+3. **Marketing:** Nível 3. Focado em ferramentas de promoção e vitrine.
+4. **Vendedor:** Nível 2. Focado na operação individual (relata vendas e acumula pontos via Grupo do Telegram).
+5. **Quiosque:** Nível 1. Focado no controle de estoque do PDV (entrada e saída).
 
 ---
 
 ## 4. Interface do Usuário: Administrador (Admin)
 
-**Nível de Acesso:** Supremo (Nível 4)
+**Nível de Acesso:** Supremo (Nível 5)
 **Responsável:** Controle total do bot, desenvolvimento de novas ferramentas e homologação da plataforma.
 
 ### Ferramentas Disponíveis no Telegram (Botões Principais)
@@ -55,7 +56,7 @@ O bot exibe menus diferentes dependendo do cargo da pessoa:
 O Modo Testador não é um "cargo humano", mas sim uma camada de simulação ativada exclusivamente pelo **Admin**. 
 
 ### Como é ativado?
-Dentro do menu do Nível 4, o Admin clica em `🧪 Modo Testador`. A partir desse momento, todas as interações dele relacionadas a testes são "enjauladas" (Sandbox).
+Dentro do menu do Nível 5, o Admin clica em `🧑‍💻 Modo Testador`. A partir desse momento, todas as interações dele relacionadas a testes são "enjauladas" (Sandbox).
 
 ### Comportamento Obrigatório do Sistema neste Modo:
 
@@ -71,8 +72,12 @@ Dentro do menu do Nível 4, o Admin clica em `🧪 Modo Testador`. A partir dess
 
 ### Ferramentas Disponíveis no Telegram (Modo Testador)
 - **📦 Estoque Teste:** Simula o envio de foto/cadastro de produto, mas direcionando para tabelas ou nomes simulados (`[TESTE]`). Pode-se Cadastrar ou Limpar produtos de teste.
-- **🧪 Testar Usuários:** Permite ao Admin gerar um código da classe `TST-` para simular um onboarding de novos funcionários. Com isso, o Admin pode "encarnar" temporariamente a interface e permissões de Níveis inferiores (ex: Quiosque, Boss) no próprio celular para ver como eles enxergam os menus.
-- **🔗 Página de Ajustes Teste:** Gera um link mágico que, na interface Web, permite ver claramente quais produtos são "lixo de teste" para poderem ser apagados a qualquer momento com segurança, sem medo de apagar o estoque real.
+- **🧪 Testar Usuários:** Permite ao Admin gerar um código da classe `TST-` para simular um onboarding de novos funcionários. Com isso, o Admin pode "encarnar" temporariamente a interface e permissões de Níveis inferiores no próprio celular.
+
+---
+## 5.5 Integração com Telegram Mini App e Grupos
+- **Mini App (Estoque):** A interface web para ajustes de produtos e dados foi incorporada diretamente como um "Telegram Mini App". Ao invés de o bot mandar links de acesso mágico, o Quiosque e o Administrador clicam no botão `🏢 Mini App (Estoque)` e a tela React abre nativamente no aplicativo, lendo o `telegram_id` do usuário para autenticar com segurança. Lá é possível revisar e aprovar o que foi cadastrado por foto pelo Quiosque.
+- **Grupo de Vendas:** O Piticão foi treinado para ouvir mensagens num grupo e processar hashtags (como `#vendas`, `#metadoria`, `#vendadoquiosquedia`). Ele contabiliza os pontos automaticamente para a Gamificação dos vendedores (Nível 2).
 
 ---
 

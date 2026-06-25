@@ -36,17 +36,18 @@ def get_menu_por_nivel(nivel: int, is_tester_mode: bool = False) -> ReplyKeyboar
     elif nivel == 3:
         keyboard = [
             ["📊 Relatórios (Em breve)"],
-            [KeyboardButton("🏢 Página de Ajustes", web_app=WebAppInfo(url=URL_MINI_APP))]
+            [KeyboardButton("🏢 Mini App (Estoque)", web_app=WebAppInfo(url=URL_MINI_APP))]
         ]
     elif nivel == 4:
         keyboard = [
             ["🛍️ Modo Venda", "📦 Modo Estoque", "🔄 Sincronizar Catálogos"],
-            [KeyboardButton("🏢 Página de Ajustes", web_app=WebAppInfo(url=URL_MINI_APP))],
+            [KeyboardButton("🏢 Mini App (Estoque)", web_app=WebAppInfo(url=URL_MINI_APP))],
             ["🔙 Voltar ao Menu"]
         ]
     elif nivel == 5:
         keyboard = [
-            ["⚙️ Controle de Sistema", "🧑‍💻 Modo Testador"]
+            ["⚙️ Controle de Sistema", "🧑‍💻 Modo Testador"],
+            [KeyboardButton("🏢 Mini App (Estoque)", web_app=WebAppInfo(url=URL_MINI_APP))]
         ]
     else:
         keyboard = [["/start"]]

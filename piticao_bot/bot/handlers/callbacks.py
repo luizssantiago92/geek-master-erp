@@ -115,6 +115,52 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_states[telegram_id] = f"esperando_nome_codigo_{nivel}_None"
             await query.edit_message_text(f"Você escolheu gerar um código para *{NIVEIS.get(nivel)}*.\n\nPor favor, digite o **nome** que será atribuído a este usuário ou quiosque (Ex: `Equipe Shopping Metropolitano`).\n\n(Ou digite `Cancelar`)", parse_mode="Markdown")
 
+    elif data.startswith("vinc_quiosq_"):
+        quiosque_id = data.replace("vinc_quiosq_", "")
+        estado_atual = user_states.get(telegram_id)
+        if not estado_atual or not estado_atual.startswith("esperando_quiosque_codigo_"):
+            await query.edit_message_text("❌ Estado inválido.")
+            return
+            
+        partes = estado_atual.split("|||")
+        nome_customizado = partes[1]
+        
+        info_nivel = partes[0].replace("esperando_quiosque_codigo_", "").split("_")
+        nivel_para_gerar = int(info_nivel[0])
+        medalhao = info_nivel[1] if info_nivel[1] != "None" else None
+        
+        codigo = gerar_novo_codigo(funcionario['id'], nivel_para_gerar, nome_atribuido=nome_customizado, medalhao=medalhao, is_tester=False, quiosque_id=quiosque_id)
+        user_states.pop(telegram_id, None)
+        
+        if codigo:
+            import qrcode
+            from io import BytesIO
+            bot_username = context.bot.username
+            deep_link = f"https://t.me/{bot_username}?start={codigo}"
+            qr = qrcode.QRCode(version=1, box_size=10, border=4)
+            qr.add_data(deep_link)
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            bio = BytesIO()
+            bio.name = "codigo_acesso.png"
+            img.save(bio, "PNG")
+            bio.seek(0)
+            
+            mensagem = (
+                f"🎟️ *Código de Acesso Gerado com Sucesso!*\n\n"
+                f"Cargo: *{NIVEIS.get(nivel_para_gerar)}*\n"
+                f"Nome Vinculado: *{nome_customizado}*\n\n"
+                f"💡 _Mande o usuário apontar a câmera do celular para este QR Code, ou envie a imagem para ele!_\n"
+                f"⚠️ *ATENÇÃO: Este código expira em 30 minutos!*\n\n"
+                f"*(Alternativa: envie o link ou código abaixo)*\n"
+                f"Link direto: {deep_link}"
+            )
+            await context.bot.send_photo(chat_id=telegram_id, photo=bio, caption=mensagem, parse_mode="Markdown")
+            await context.bot.send_message(chat_id=telegram_id, text=f"`{codigo}`", parse_mode="Markdown")
+            await query.delete_message()
+        else:
+            await query.edit_message_text("❌ Erro ao gerar o código no banco de dados.")
+
     elif data.startswith("enc_detalhe_"):
         enc_id = data.replace("enc_detalhe_", "")
         resp = supabase.table("encomendas").select("*").eq("id", enc_id).execute()

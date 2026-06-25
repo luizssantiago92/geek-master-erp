@@ -67,7 +67,8 @@ def validar_e_usar_codigo(telegram_id: str, telegram_name: str, codigo: str):
             "cargo": cargo,
             "nivel_acesso": nivel,
             "ativo": True,
-            "medalhao": codigo_db.get("medalhao")
+            "medalhao": codigo_db.get("medalhao"),
+            "quiosque_id": codigo_db.get("quiosque_id")
         }
         res_func = supabase.table("funcionarios").insert(novo_funcionario).execute()
         
@@ -128,11 +129,11 @@ def registrar_master_admin(telegram_id: str, telegram_name: str):
         print(f"Erro ao registrar master admin: {e}")
         return False
 
-def gerar_novo_codigo(id_criador: str, nivel_acesso: int, nome_atribuido: str = None, medalhao: str = None, is_tester: bool = False):
-    """Gera um novo código de acesso aleatório válido por 30 minutos, podendo pré-definir o nome do usuário e o medalhão."""
+def gerar_novo_codigo(id_criador: str, nivel_acesso: int, nome_atribuido: str = None, medalhao: str = None, is_tester: bool = False, quiosque_id: str = None):
+    """Gera um novo código de acesso aleatório válido por 30 minutos, podendo pré-definir o nome do usuário, medalhão e quiosque."""
     try:
         import secrets
-        letras = {1: 'Q', 2: 'M', 3: 'B', 4: 'A'}
+        letras = {1: 'Q', 2: 'V', 3: 'M', 4: 'B', 5: 'A'}
         letra_nivel = letras.get(nivel_acesso, 'X')
         numero_aleatorio = secrets.randbelow(10000)
         
@@ -148,6 +149,7 @@ def gerar_novo_codigo(id_criador: str, nivel_acesso: int, nome_atribuido: str = 
             "expira_em": expiracao,
             "nome_atribuido": nome_atribuido,
             "medalhao": medalhao,
+            "quiosque_id": quiosque_id,
             "usado": False
         }
         
@@ -157,10 +159,13 @@ def gerar_novo_codigo(id_criador: str, nivel_acesso: int, nome_atribuido: str = 
         print(f"Erro ao gerar novo código: {e}")
         return None
 
-def get_todos_funcionarios():
-    """Retorna todos os funcionários cadastrados no sistema."""
+def get_todos_funcionarios(nivel: int = None):
+    """Retorna todos os funcionários cadastrados no sistema, opcionalmente filtrados por nível."""
     try:
-        response = supabase.table("funcionarios").select("*").execute()
+        query = supabase.table("funcionarios").select("*")
+        if nivel is not None:
+            query = query.eq("nivel_acesso", nivel)
+        response = query.execute()
         return response.data
     except Exception as e:
         print(f"Erro ao buscar todos os funcionários: {e}")
