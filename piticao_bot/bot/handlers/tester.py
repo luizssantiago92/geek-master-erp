@@ -9,10 +9,9 @@ async def handle_tester_messages(update: Update, context: ContextTypes.DEFAULT_T
     nivel_real = funcionario['nivel_acesso']
 
     # Entrando no menu Modo Testador
-    if text == "🧑‍💻 Modo Testador" and nivel_real == 4:
+    if text == "🧑‍💻 Modo Testador" and nivel_real == 5:
         keyboard = [
-            ["1️⃣ Quiosque Teste", "2️⃣ Marketing Teste"],
-            ["3️⃣ Boss Teste", "4️⃣ Admin Teste"],
+            ["1️⃣ Quiosque Teste", "2️⃣ Marketing Teste", "3️⃣ Boss Teste"],
             ["🔙 Voltar ao Menu"]
         ]
         await update.message.reply_text("🧑‍💻 **MODO TESTADOR**\n\nEscolha qual interface você deseja simular:\n*(Qualquer ação tomada dentro do modo teste será salva com a tag [TESTE])*", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True), parse_mode="Markdown")
@@ -21,12 +20,11 @@ async def handle_tester_messages(update: Update, context: ContextTypes.DEFAULT_T
     # Botões de Simulação
     simulacoes = {
         "1️⃣ Quiosque Teste": 1,
-        "2️⃣ Marketing Teste": 2,
-        "3️⃣ Boss Teste": 3,
-        "4️⃣ Admin Teste": 4
+        "2️⃣ Marketing Teste": 3,
+        "3️⃣ Boss Teste": 4
     }
 
-    if text in simulacoes and nivel_real == 4:
+    if text in simulacoes and nivel_real == 5:
         nivel_teste = simulacoes[text]
         impersonation_states[telegram_id] = nivel_teste
         nome_exibicao = NIVEIS.get(nivel_teste)

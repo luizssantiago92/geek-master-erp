@@ -104,16 +104,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
         nivel = int(data.split("_")[1])
-        if nivel > 1:
-            keyboard = [
-                [InlineKeyboardButton("🥇 Gold Access (Acesso Total)", callback_data=f"medalhao_{nivel}_Gold")],
-                [InlineKeyboardButton("🥈 Silver Access (Acesso Supervisionado)", callback_data=f"medalhao_{nivel}_Silver")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await query.edit_message_text(f"Você escolheu gerar um código para *{NIVEIS.get(nivel)}*.\n\nSelecione a patente Medalhão para este usuário:", parse_mode="Markdown", reply_markup=reply_markup)
-        else:
-            user_states[telegram_id] = f"esperando_nome_codigo_{nivel}_None"
-            await query.edit_message_text(f"Você escolheu gerar um código para *{NIVEIS.get(nivel)}*.\n\nPor favor, digite o **nome** que será atribuído a este usuário ou quiosque (Ex: `Equipe Shopping Metropolitano`).\n\n(Ou digite `Cancelar`)", parse_mode="Markdown")
+        user_states[telegram_id] = f"esperando_nome_codigo_{nivel}_None"
+        await query.edit_message_text(f"Você escolheu gerar um código para *{NIVEIS.get(nivel)}*.\n\nPor favor, digite o **nome** que será atribuído a este usuário ou quiosque (Ex: `Equipe Shopping Metropolitano`).\n\n(Ou digite `Cancelar`)", parse_mode="Markdown")
 
     elif data.startswith("vinc_quiosq_"):
         quiosque_id = data.replace("vinc_quiosq_", "")

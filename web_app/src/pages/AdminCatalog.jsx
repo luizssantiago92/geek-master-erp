@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Settings, Save, CheckCircle, Clock, AlertTriangle, Send } from 'lucide-react';
+import { useTelegram } from '../hooks/useTelegram';
 
 export default function AdminCatalog() {
   const [produtos, setProdutos] = useState([]);

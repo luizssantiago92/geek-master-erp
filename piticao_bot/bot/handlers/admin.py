@@ -23,23 +23,7 @@ async def handle_admin_messages(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 
-    if text == "🧑‍💻 Modo Testador" and nivel_efetivo == 5:
-        keyboard = ReplyKeyboardMarkup([
-            ["📦 Estoque Teste", "🧪 Testar Usuários"],
-            ["🔙 Voltar ao Menu"]
-        ], resize_keyboard=True)
-        await update.message.reply_text("Você acessou o **Modo Testador**.", reply_markup=keyboard, parse_mode='Markdown')
-        return True
 
-    if text == "🧪 Testar Usuários" and nivel_real == 5:
-        keyboard = [
-            [InlineKeyboardButton("🔑 Inserir TST- (Simular Novo Acesso)", callback_data="teste_onboarding")]
-        ]
-        perfis = funcionario.get('perfis_teste', [])
-        for p in perfis:
-            keyboard.append([InlineKeyboardButton(f"Perfil {NIVEIS.get(p)}", callback_data=f"teste_nivel_{p}")])
-        await update.message.reply_text("🧪 **Testar Usuários - Perfis Criados**", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
-        return True
 
 
 
