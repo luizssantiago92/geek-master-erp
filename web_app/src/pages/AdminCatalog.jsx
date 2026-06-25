@@ -17,58 +17,59 @@ export default function AdminCatalog() {
 
   // Verifica Autenticação Nativa (Telegram)
   useEffect(() => {
-    checkTelegramAuth();
-  }, [user, isTelegram]);
-
-  async function checkTelegramAuth() {
-    if (!isTelegram) {
-      // Se não estiver no Telegram, tenta ver se tem um token na URL para debug local
-      const token = searchParams.get('token');
-      if (token) {
-        setAuthError('Desenvolvimento Local: Acesso concedido pelo Token (Mock)');
-        setSession({ nivel_acesso: 5 }); // Simula Admin
+    async function checkTelegramAuth() {
+      if (!isTelegram) {
+        // Se não estiver no Telegram, tenta ver se tem um token na URL para debug local
+        const token = searchParams.get('token');
+        if (token) {
+          setAuthError('Desenvolvimento Local: Acesso concedido pelo Token (Mock)');
+          setSession({ nivel_acesso: 5 }); // Simula Admin
+          setLoading(false);
+          fetchProdutos();
+          return;
+        }
+        setAuthError('Acesso Restrito. Por favor, abra esta página através do Bot no Telegram.');
         setLoading(false);
-        fetchProdutos();
         return;
       }
-      setAuthError('Acesso Restrito. Por favor, abra esta página através do Bot no Telegram.');
-      setLoading(false);
-      return;
-    }
 
-    if (!user || !user.id) {
-      setAuthError('Não foi possível identificar seu usuário no Telegram.');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('funcionarios')
-        .select('*')
-        .eq('telegram_id', String(user.id))
-        .single();
-
-      if (error || !data) {
-        setAuthError('Você não tem cadastro no sistema.');
-      } else if (!data.ativo) {
-        setAuthError('Seu acesso está suspenso.');
-      } else {
-        setSession({
-          telegram_id: data.telegram_id,
-          nivel_acesso: data.nivel_acesso,
-          nome: data.nome
-        });
-        setAuthError('');
-        fetchProdutos();
+      if (!user || !user.id) {
+        setAuthError('Não foi possível identificar seu usuário no Telegram.');
+        setLoading(false);
+        return;
       }
-    } catch (err) {
-      setAuthError('Erro ao verificar acesso no banco de dados.');
-    } finally {
-      setLoading(false);
+
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('funcionarios')
+          .select('*')
+          .eq('telegram_id', String(user.id))
+          .single();
+
+        if (error || !data) {
+          setAuthError('Você não tem cadastro no sistema.');
+        } else if (!data.ativo) {
+          setAuthError('Seu acesso está suspenso.');
+        } else {
+          setSession({
+            telegram_id: data.telegram_id,
+            nivel_acesso: data.nivel_acesso,
+            nome: data.nome
+          });
+          setAuthError('');
+          fetchProdutos();
+        }
+      } catch (err) {
+        setAuthError('Erro ao verificar acesso no banco de dados.');
+      } finally {
+        setLoading(false);
+      }
     }
-  }
+
+    checkTelegramAuth();
+  }, [user, isTelegram, searchParams]);
+
 
   async function fetchProdutos() {
     setLoading(true);
